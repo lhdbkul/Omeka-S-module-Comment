@@ -855,33 +855,35 @@ class Module extends AbstractModule
     {
         $representation = $owner ?: $event->getParam('entity');
         $columnName = $this->columnNameOfRepresentation($representation);
-        $api = $this->getServiceLocator()->get('Omeka\ApiManager');
 
-        // TODO Use one direct query instead of four for stats.
+        // Use one query with conditional counts instead of separated.
+        $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
+        $dql = <<<'DQL'
+            SELECT
+                COUNT(c.id) AS total,
+                SUM(CASE WHEN c.approved = true THEN 1 ELSE 0 END) AS approved,
+                SUM(CASE WHEN c.flagged = true THEN 1 ELSE 0 END) AS flagged,
+                SUM(CASE WHEN c.spam = true THEN 1 ELSE 0 END) AS spam
+            FROM Comment\Entity\Comment c
+            WHERE c.%s = :id
+            DQL;
+        $dql = sprintf($dql, $columnName === 'owner_id' ? 'owner' : 'resource');
 
-        $totalComments = $api
-            ->search('comments', [$columnName => $representation->id(), 'limit' => 0])
-            ->getTotalResults();
+        $stats = $entityManager->createQuery($dql)
+            ->setParameter('id', $representation->id())
+            ->getSingleResult();
+
+        $totalComments = (int) $stats['total'];
         if (empty($totalComments)) {
             return;
         }
 
-        $totalApproved = $api
-            ->search('comments', [$columnName => $representation->id(), 'approved' => true, 'limit' => 0])
-            ->getTotalResults();
-        $totalFlagged = $api
-            ->search('comments', [$columnName => $representation->id(), 'flagged' => true, 'limit' => 0])
-            ->getTotalResults();
-        $totalSpam = $api
-            ->search('comments', [$columnName => $representation->id(), 'spam' => true, 'limit' => 0])
-            ->getTotalResults();
-
-        echo $event->getTarget()->partial('common/admin/comments-details',[
+        echo $event->getTarget()->partial('common/admin/comments-details', [
             'resource' => $representation,
-            'total_comments' => $totalComments,
-            'total_approved' => $totalApproved,
-            'total_flagged' => $totalFlagged,
-            'total_spam' => $totalSpam,
+            'totalComments' => $totalComments,
+            'totalApproved' => (int) $stats['approved'],
+            'totalFlagged' => (int) $stats['flagged'],
+            'totalSpam' => (int) $stats['spam'],
         ]);
     }
 

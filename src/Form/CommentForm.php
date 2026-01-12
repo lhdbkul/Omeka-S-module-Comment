@@ -29,7 +29,7 @@ class CommentForm extends Form
      */
     protected $settings;
 
-/**
+    /**
      * @var \Laminas\View\Helper\Url
      */
     protected $urlHelper;
@@ -43,6 +43,14 @@ class CommentForm extends Form
 
     public function init(): void
     {
+        // Remove the auto-added csrf from omeka initializer since we use a
+        // custom one with shorter timeout (1h vs 12h) and resource-specific
+        // name (allows multiple forms per page).
+        if ($this->has('csrf')) {
+            $this->remove('csrf');
+            $this->getInputFilter()->remove('csrf');
+        }
+
         $resourceId = $this->getOption('resource_id');
         $siteSlug = (string) $this->getOption('site_slug', '');
         $isPublic = (bool) strlen($siteSlug);
@@ -311,7 +319,7 @@ class CommentForm extends Form
                     'required' => true,
                 ],
             ])
-            // TODO Clarify the use of this second csrf. Only the timeout?
+            // Custom CSRF with shorter timeout (1h) and resource-specific name.
             ->add([
                 'type' => Element\Csrf::class,
                 'name' => sprintf('csrf_%s', $resourceId),

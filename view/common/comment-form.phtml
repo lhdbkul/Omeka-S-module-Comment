@@ -123,7 +123,6 @@ $commentForm->prepare();
     <?= $formHidden($commentForm->get('comment_parent_id')) ?>
     <?= $formHidden($commentForm->get('path')) ?>
     <?= $formHidden($commentForm->get('csrf_' . $resource->id())) ?>
-    <?= $formHidden($commentForm->get('csrf')) ?>
     <?php $element = $commentForm->get('submit'); ?>
     <div class="field">
         <div class="field-meta">
