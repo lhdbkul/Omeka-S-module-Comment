@@ -12,7 +12,7 @@ class CommentsSearchForm extends AbstractHelper
      */
     protected $searchForm;
 
-    public function __construct(SearchForm $searchForm): void
+    public function __construct(SearchForm $searchForm)
     {
         $this->searchForm = $searchForm;
     }
