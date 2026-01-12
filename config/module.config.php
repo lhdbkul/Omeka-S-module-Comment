@@ -301,6 +301,7 @@ return [
                 <p>I agree with <a rel="license" href="#" target="_blank">terms of use</a> and I accept to free my contribution under the license <a rel="license" href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank">CC BY-SA</a>.</p>
                 HTML, // @translate
             'comment_subscribe_button' => '0',
+            'comment_groups' => [],
         ],
         'site_settings' => [
             'comment_placement_subscription' => [],

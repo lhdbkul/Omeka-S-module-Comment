@@ -116,11 +116,40 @@ class CommentAdapter extends AbstractEntityAdapter
             }
         }
 
-        // This is "or" when multiple collections are set.
+        // Manage arguments "group" and "collection_id" together.
+        // It there are groups and collections, intersect them: "and" is used
+        // between arguments.
         if (array_key_exists('collection_id', $query) && !in_array($query['collection_id'], [null, '', []], true)) {
-            $values = is_array($query['collection_id'])
+            $collectionIds = is_array($query['collection_id'])
                 ? array_values(array_unique(array_map('intval', $query['collection_id'])))
                 : [(int) $query['collection_id']];
+        } else {
+            $collectionIds = [];
+        }
+
+        if (array_key_exists('group', $query) && !in_array($query['group'], [null, '', []], true)) {
+            $values = is_array($query['group'])
+                ? array_values(array_unique(array_map('string', $query['group'])))
+                : [(string) $query['group']];
+            $groups = $this->getServiceLocator()->get('Omeka\Settings')->get('comment_groups');
+            $groupItemSets = array_intersect_key($groups, array_flip($values));
+            $groupItemSets = $groupItemSets ? array_unique(array_merge(...array_values($groupItemSets))) : [];
+            if (!$groupItemSets) {
+                $qb->andWhere($expr->isNull('omeka_root.id'));
+            } else {
+                // Intersect with collection ids if any and continue below.
+                $collectionIds = $collectionIds
+                    ? array_intersect($collectionIds, $groupItemSets)
+                    : $groupItemSets;
+                if (!$collectionIds) {
+                    $qb->andWhere($expr->isNull('omeka_root.id'));
+                }
+            }
+        }
+
+        // This is "or" when multiple collections are set.
+        if ($collectionIds) {
+            $values = array_values($collectionIds);
             $itemAlias = $this->createAlias();
             $itemSetAlias = $this->createAlias();
 

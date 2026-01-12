@@ -277,6 +277,35 @@ class SettingsFieldset extends Fieldset
                     'info' => 'This text will be shown beside the legal checkbox. Let empty if you don’t want to use a legal agreement.', // @translate
                 ],
             ])
+
+            ->add([
+                'name' => 'comment_groups',
+                'type' => CommonElement\DataTextarea::class,
+                'options' => [
+                    'element_group' => 'comment',
+                    'label' => 'Shortcuts to group comments by item sets', // @translate
+                    'info' => 'A group allows to separate comments that have different purposes, fo example comments to identify and generic comments. The url will be "?group={name}". Set a list a name, then a "=", then a list of item set ids. The special group "none" allows to get comments without group.', // @translate
+                    'as_key_value' => true,
+                    'key_value_separator' => '=',
+                    'data_options' => [
+                        'name' => null,
+                        'item_set_ids' => [
+                            'separator' => ' ',
+                            'is_integer' => true,
+                        ],
+                    ],
+                    'data_flat_key' => 'item_set_ids',
+                    'data_text_mode' => 'by_line',
+                ],
+                'attributes' => [
+                    'id' => 'comment_groups',
+                    'required' => false,
+                    'placeholder' => <<<'TXT'
+                        identify = 10
+                        already_identified = 11 12
+                        TXT,
+                ],
+            ])
         ;
     }
 }
