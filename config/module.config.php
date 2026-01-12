@@ -190,6 +190,52 @@ return [
             ],
         ],
     ],
+    'browse_defaults' => [
+        'admin' => [
+            'comments' => [
+                'sort_by' => 'created',
+                'sort_order' => 'desc',
+            ],
+            'comment_subscriptions' => [
+                'sort_by' => 'created',
+                'sort_order' => 'desc',
+            ],
+        ],
+        'public' => [
+            'comments' => [
+                'sort_by' => 'created',
+                'sort_order' => 'desc',
+            ],
+            'comment_subscriptions' => [
+                'sort_by' => 'created',
+                'sort_order' => 'desc',
+            ],
+        ],
+    ],
+    'sort_defaults' => [
+        'admin' => [
+            'comments' => [
+                'created' => 'Date created', // @translate
+                'modified' => 'Date modified', // @translate
+                'resource_id' => 'Resource', // @translate
+                'id' => 'ID', // @translate
+            ],
+            'comment_subscriptions' => [
+                'created' => 'Date created', // @translate
+                'id' => 'ID', // @translate
+            ],
+        ],
+        'public' => [
+            'comments' => [
+                'created' => 'Date created', // @translate
+                'modified' => 'Date modified', // @translate
+                'resource_id' => 'Resource', // @translate
+            ],
+            'comment_subscriptions' => [
+                'created' => 'Date created', // @translate
+            ],
+        ],
+    ],
     'js_translate_strings' => [
         'You should accept the legal agreement.', // @translate
         'Comment was added to the resource.', // @translate

@@ -13,7 +13,8 @@ class CommentController extends AbstractCommentController
 {
     public function browseAction()
     {
-        $this->setBrowseDefaults('created');
+        $this->browse()->setDefaults('comments');
+
         $response = $this->api()->search('comments', $this->params()->fromQuery());
         $this->paginator($response->getTotalResults());
 

@@ -58,6 +58,7 @@ $baseUrl = $site ? $url('site/comment', ['site-slug' => $site->slug()]) : $url('
 <div class="browse-controls">
     <?= $pg = $this->pagination() ?>
     <?php //= $hyperlink($translate('Advanced search'), $url(null, ['action' => 'search'], true), ['class' => 'advanced-search']) ?>
+    <?= $this->browse()->renderSortSelector('comment_subscriptions') ?>
 </div>
 
 <div class="comments-list comments-subscription-list" data-comment-url="<?= $escapeAttr($baseUrl) ?>">

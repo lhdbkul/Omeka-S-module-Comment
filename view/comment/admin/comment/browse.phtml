@@ -27,29 +27,6 @@ $this->headScript()
 
 $this->htmlElement('body')->appendAttribute('class', 'comment comments browse');
 
-$sortHeadings = [
-    // [
-    //     'label' => $translate('Resource'),
-    //     'value' => 'resource_title',
-    // ],
-    [
-        'label' => $translate('Commenter'),
-        'value' => 'name',
-    ],
-    [
-        'label' => $translate('Commenter email'),
-        'value' => 'email',
-    ],
-    [
-        'label' => $translate('Resource'),
-        'value' => 'resource_id',
-    ],
-    [
-        'label' => $translate('Date commented'),
-        'value' => 'created',
-    ],
-];
-
 $batchEditRight = $userIsAllowed(CommentAdapter::class, 'batch-update')
     || $userIsAllowed(CommentAdapter::class, 'batch-delete');
 $editRight = $userIsAllowed(CommentAdapter::class, 'update')
@@ -63,7 +40,7 @@ $editRight = $userIsAllowed(CommentAdapter::class, 'update')
  <div class="browse-controls">
     <?= $this->pagination() ?>
     <?php // echo $hyperlink($translate('Advanced search'), $url(null, ['action' => 'search'], ['query' => $this->params()->fromQuery()], true), ['class' => 'advanced-search']) ?>
-    <?= $this->sortSelector($sortHeadings) ?>
+    <?= $this->browse()->renderSortSelector('comments') ?>
 </div>
 
 <form method="post" id="batch-form" class="disable-unsaved-warning">

@@ -21,13 +21,13 @@ class CommentController extends AbstractCommentController
             return $this->redirect()->toRoute('site/guest/anonymous', ['action' => 'login'], ['query' => ['redirect' => $this->getRequest()->getRequestUri()]]);
         }
 
+        $this->browse()->setDefaults('comments');
+
         // Browse the comments of the user.
 
         // Do not limlit by site.
         // TODO When resource is not in site, set the right url.
         $site = $this->currentSite();
-
-        $this->browse()->setDefaults('comments');
 
         $query = $this->params()->fromQuery();
         $query['owner_id'] = $user->getId();
