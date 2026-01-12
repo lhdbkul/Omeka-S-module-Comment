@@ -2,6 +2,7 @@
 
 namespace Comment\View\Helper;
 
+use Comment\Service\CommentCache;
 use Laminas\View\Helper\AbstractHelper;
 use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
 
@@ -45,14 +46,22 @@ class CommentSubscriptionButton extends AbstractHelper
 
         $subscribed = false;
         if ($user) {
-            /** @var \Omeka\View\Helper\Api $api */
-            $api = $plugins->get('api');
-            try {
-                // TODO The options are not managed in api view helper.
-                $api->read('comment_subscriptions', ['owner' => $user->getId(), 'resource' => $resource->id()], [], ['responseContent' => 'resource']);
-                $subscribed = true;
-            } catch (\Exception $e) {
-                // Skip.
+            $userId = $user->getId();
+            $resourceId = $resource->id();
+
+            // Use cached subscription status if available.
+            if (CommentCache::hasSubscription($userId, $resourceId)) {
+                $subscribed = CommentCache::getSubscription($userId, $resourceId);
+            } else {
+                /** @var \Omeka\View\Helper\Api $api */
+                $api = $plugins->get('api');
+                try {
+                    $api->read('comment_subscriptions', ['owner' => $userId, 'resource' => $resourceId], [], ['responseContent' => 'resource']);
+                    $subscribed = true;
+                } catch (\Exception $e) {
+                    // Not subscribed.
+                }
+                CommentCache::setSubscription($userId, $resourceId, $subscribed);
             }
         }
 

@@ -2,6 +2,7 @@
 
 namespace Comment\View\Helper;
 
+use Comment\Service\CommentCache;
 use Laminas\View\Helper\AbstractHelper;
 use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
 
@@ -19,10 +20,18 @@ class CommentsResource extends AbstractHelper
     {
         $view = $this->getView();
         $plugins = $view->getHelperPluginManager();
-        $api = $plugins->get('api');
         $fallbackSetting = $plugins->get('fallbackSetting');
 
-        $comments = $api->search('comments', ['resource_id' => $resource->id()])->getContent();
+        $resourceId = $resource->id();
+
+        // Use cached comments if available (shared with Module).
+        if (CommentCache::hasResource($resourceId)) {
+            $comments = CommentCache::getByResource($resourceId);
+        } else {
+            $api = $plugins->get('api');
+            $comments = $api->search('comments', ['resource_id' => $resourceId])->getContent();
+            CommentCache::setByResource($resourceId, $comments);
+        }
 
         $label = $options['label'] ?? (string) $fallbackSetting('comment_label', ['site', 'global']);
         $structure = $options['structure'] ?? (string) $fallbackSetting('comment_structure', ['site', 'global'], 'flat');

@@ -2,6 +2,7 @@
 
 namespace Comment\View\Helper;
 
+use Comment\Service\CommentCache;
 use Laminas\View\Helper\AbstractHelper;
 use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
 
@@ -23,15 +24,25 @@ class CommentIsSubscribed extends AbstractHelper
             return false;
         }
 
-        $api = $plugins->get('api');
+        $userId = $user->getId();
+        $resourceId = $resource->id();
 
+        // Use cached subscription status if available.
+        if (CommentCache::hasSubscription($userId, $resourceId)) {
+            return CommentCache::getSubscription($userId, $resourceId);
+        }
+
+        $api = $plugins->get('api');
         $subscription = $api
             ->searchOne('comment_subscriptions', [
-                'owner_id' => $user->getId(),
-                'resource_id' => $resource->id(),
+                'owner_id' => $userId,
+                'resource_id' => $resourceId,
                 'return_scalar' => 'id',
             ])->getContent();
 
-        return (bool) $subscription;
+        $subscribed = (bool) $subscription;
+        CommentCache::setSubscription($userId, $resourceId, $subscribed);
+
+        return $subscribed;
     }
 }

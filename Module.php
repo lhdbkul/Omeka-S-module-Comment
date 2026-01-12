@@ -818,9 +818,15 @@ class Module extends AbstractModule
         $view = $event->getTarget();
 
         $resource = $view->vars()->resource;
-        $comments = $api->search('comments', [
-            'resource_id' => $resource->id()
-        ])->getContent();
+        $resourceId = $resource->id();
+
+        // Use cached comments if available.
+        if (CommentCache::hasResource($resourceId)) {
+            $comments = CommentCache::getByResource($resourceId);
+        } else {
+            $comments = $api->search('comments', ['resource_id' => $resourceId])->getContent();
+            CommentCache::setByResource($resourceId, $comments);
+        }
 
         // TODO Check module BlocksDisposition.
         if ($this->isCommentEnabledForResource($resource, false)) {
