@@ -220,6 +220,33 @@ class SettingsFieldset extends Fieldset
             ])
 
             ->add([
+                'name' => 'comment_rate_limit_count',
+                'type' => CommonElement\OptionalNumber::class,
+                'options' => [
+                    'element_group' => 'comment',
+                    'label' => 'Rate limit: max comments', // @translate
+                    'info' => 'Maximum number of comments allowed per IP address within the time period. Set 0 or empty to disable.', // @translate
+                ],
+                'attributes' => [
+                    'min' => 0,
+                    'placeholder' => '5',
+                ],
+            ])
+            ->add([
+                'name' => 'comment_rate_limit_period',
+                'type' => CommonElement\OptionalNumber::class,
+                'options' => [
+                    'element_group' => 'comment',
+                    'label' => 'Rate limit: period (minutes)', // @translate
+                    'info' => 'Time window in minutes for the rate limit.', // @translate
+                ],
+                'attributes' => [
+                    'min' => 1,
+                    'placeholder' => '60',
+                ],
+            ])
+
+            ->add([
                 'name' => 'comment_label',
                 'type' => Element\Text::class,
                 'options' => [

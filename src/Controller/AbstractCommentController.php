@@ -56,6 +56,12 @@ abstract class AbstractCommentController extends AbstractActionController
             ), Response::STATUS_CODE_403);
         }
 
+        // Check rate limiting.
+        $rateLimitError = $this->checkRateLimit($data['o:ip']);
+        if ($rateLimitError) {
+            return $rateLimitError;
+        }
+
         $data['o:user_agent'] = $this->getUserAgent();
         if (empty($data['o:user_agent'])) {
             return $this->jSend()->fail(null, new PsrMessage(
@@ -621,5 +627,49 @@ abstract class AbstractCommentController extends AbstractActionController
     protected function getUserAgent()
     {
         return @$_SERVER['HTTP_USER_AGENT'];
+    }
+
+    /**
+     * Check if the IP address has exceeded the rate limit.
+     *
+     * @param string $ip
+     * @return \Laminas\View\Model\JsonModel|null Error response or null if allowed.
+     */
+    protected function checkRateLimit(string $ip)
+    {
+        $settings = $this->settings();
+        $maxCount = (int) $settings->get('comment_rate_limit_count', 0);
+        $periodMinutes = (int) $settings->get('comment_rate_limit_period', 60);
+
+        // Rate limiting disabled.
+        if ($maxCount <= 0) {
+            return null;
+        }
+
+        // Count recent comments from this IP using the API.
+        $since = (new \DateTime("-{$periodMinutes} minutes"))->format('Y-m-d\TH:i:s');
+
+        try {
+            $response = $this->api()->search('comments', [
+                'ip' => $ip,
+                'created_after' => $since,
+            ], ['returnScalar' => 'id']);
+            $count = $response->getTotalResults();
+        } catch (\Exception $e) {
+            // On error, allow the comment (fail open).
+            return null;
+        }
+
+        if ($count >= $maxCount) {
+            $this->logger()->warn(
+                'Rate limit exceeded for IP {ip}: {count} comments in {period} minutes.', // @translate
+                ['ip' => $ip, 'count' => $count, 'period' => $periodMinutes]
+            );
+            return $this->jSend()->fail(null, new PsrMessage(
+                'Too many comments. Please wait before posting again.' // @translate
+            ), Response::STATUS_CODE_429);
+        }
+
+        return null;
     }
 }
