@@ -11,6 +11,7 @@
 /.settings/
 /test/.phpunit.cache/
 /test/.phpunit.result.cache
+/tests/.phpunit.cache/
 /tests/.phpunit.result.cache
 .buildpath
 .bundle

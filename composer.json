@@ -26,12 +26,9 @@
             "Comment\\": "src/"
         }
     },
-    "require-dev": {
-        "biblibre/omeka-s-test-helper": "dev-master"
-    },
     "autoload-dev": {
         "psr-4": {
-            "CommentTest\\": "test/CommentTest/"
+            "CommentTest\\": "tests/CommentTest/"
         }
     }
 }
