@@ -7,6 +7,7 @@ use Comment\Entity\Comment;
 use DateTime;
 use Doctrine\ORM\QueryBuilder;
 use Laminas\Validator\EmailAddress;
+use Laminas\Validator\Uri as UriValidator;
 use Omeka\Api\Adapter\AbstractEntityAdapter;
 use Omeka\Api\Request;
 use Omeka\Entity\EntityInterface;
@@ -295,7 +296,7 @@ class CommentAdapter extends AbstractEntityAdapter
                     $entity->setName($request->getValue('o:name'));
                 }
 
-                $entity->setWebsite($request->getValue('o:website', ''));
+                $entity->setWebsite($this->cleanWebsiteUrl($request->getValue('o:website', '')));
                 $entity->setIp($this->getClientIp());
                 $entity->setUserAgent($this->getUserAgent());
                 break;
@@ -340,6 +341,15 @@ class CommentAdapter extends AbstractEntityAdapter
             $validator = new EmailAddress();
             if (!$validator->isValid($email)) {
                 $errorStore->addValidatorMessages('o:email', $validator->getMessages());
+            }
+        }
+
+        // Validate website URL if provided.
+        $website = $entity->getWebsite();
+        if ($website !== null && $website !== '') {
+            $uriValidator = new UriValidator(['allowRelative' => false]);
+            if (!$uriValidator->isValid($website)) {
+                $errorStore->addValidatorMessages('o:website', $uriValidator->getMessages());
             }
         }
 
@@ -394,5 +404,40 @@ class CommentAdapter extends AbstractEntityAdapter
     protected function getUserAgent()
     {
         return @$_SERVER['HTTP_USER_AGENT'];
+    }
+
+    /**
+     * Clean website URL by removing query string and fragment.
+     *
+     * @param string $url
+     * @return string
+     */
+    protected function cleanWebsiteUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return '';
+        }
+
+        $parts = parse_url($url);
+        if ($parts === false || empty($parts['host'])) {
+            return '';
+        }
+
+        $cleanUrl = '';
+        if (!empty($parts['scheme'])) {
+            $cleanUrl .= $parts['scheme'] . '://';
+        }
+        if (!empty($parts['host'])) {
+            $cleanUrl .= $parts['host'];
+        }
+        if (!empty($parts['port'])) {
+            $cleanUrl .= ':' . $parts['port'];
+        }
+        if (!empty($parts['path'])) {
+            $cleanUrl .= $parts['path'];
+        }
+
+        return $cleanUrl;
     }
 }
