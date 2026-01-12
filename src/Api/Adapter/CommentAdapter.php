@@ -5,6 +5,8 @@ namespace Comment\Api\Adapter;
 use Comment\Api\Representation\CommentRepresentation;
 use Comment\Entity\Comment;
 use DateTime;
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\QueryBuilder;
 use Laminas\Validator\EmailAddress;
 use Laminas\Validator\Uri as UriValidator;
@@ -111,6 +113,66 @@ class CommentAdapter extends AbstractEntityAdapter
         ] as $queryKey => $column) {
             if (array_key_exists($queryKey, $query)) {
                 $this->buildQueryIds($qb, $query[$queryKey], $column, 'id');
+            }
+        }
+
+        // This is "or" when multiple collections are set.
+        if (array_key_exists('collection_id', $query) && !in_array($query['collection_id'], [null, '', []], true)) {
+            $values = is_array($query['collection_id'])
+                ? array_values(array_unique(array_map('intval', $query['collection_id'])))
+                : [(int) $query['collection_id']];
+            $itemAlias = $this->createAlias();
+            $itemSetAlias = $this->createAlias();
+
+            // TODO Check resource for collection_id? Add a join on resource? Check rights and visibility?
+            // This feature can be used with private collections in some cases?
+            $qb
+                // Normally, just join "ìtem_item_set", but id does not seems to
+                // be possible with doctrine orm, so use a join with item and
+                // filter it with item sets below.
+                ->innerJoin(
+                    // 'item_item_set',
+                    Item::class,
+                    $itemAlias,
+                    'WITH',
+                    $expr->eq($alias . '.resource', $itemAlias . '.id')
+                );
+
+            if ($values === [0]) {
+                // Only items with no item sets requested.
+                $qb
+                    ->andWhere($itemAlias . '.itemSets IS EMPTY');
+            } elseif (count($values) === 1) {
+                // Single collection id.
+                $paramAlias = $this->createAlias();
+                $qb
+                    ->innerJoin($itemAlias . '.itemSets', $itemSetAlias)
+                    ->andWhere($expr->eq($itemSetAlias . '.id', ':' . $paramAlias))
+                    ->setParameter($paramAlias, reset($values), ParameterType::INTEGER);
+            } elseif (in_array(0, $values, true)) {
+                // Include items with no item sets plus specific sets: 0 mixed
+                // with other ids.
+                $wantedIds = array_values(array_filter($values, fn ($v) => $v !== 0));
+                if ($wantedIds) {
+                    $paramAlias = $this->createAlias();
+                    $qb
+                        // Left join to allow null (no item sets).
+                        ->leftJoin($itemAlias . '.itemSets', $itemSetAlias)
+                        ->andWhere($expr->orX(
+                            $itemAlias . '.itemSets IS EMPTY',
+                            $expr->in($itemSetAlias . '.id', ':' . $paramAlias)
+                        ))
+                        ->setParameter($paramAlias, $wantedIds, Connection::PARAM_INT_ARRAY);
+                } else {
+                    $qb->andWhere($itemAlias . '.itemSets IS EMPTY');
+                }
+            } else {
+                // Multiple collection ids.
+                $paramAlias = $this->createAlias();
+                $qb->innerJoin($itemAlias . '.itemSets', $itemSetAlias);
+                $qb
+                    ->andWhere($expr->in($itemSetAlias . '.id', ':' . $paramAlias))
+                    ->setParameter($paramAlias, $values, Connection::PARAM_INT_ARRAY);
             }
         }
 
