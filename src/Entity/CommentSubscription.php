@@ -8,9 +8,14 @@ use Omeka\Entity\Resource;
 use Omeka\Entity\User;
 
 /**
- * @todo Ideally, the primary id is user-resource.
- *
  * @Entity
+ * @Table(
+ *     uniqueConstraints={
+ *         @UniqueConstraint(
+ *             columns={"owner_id", "resource_id"}
+ *         )
+ *     }
+ * )
  */
 class CommentSubscription extends AbstractEntity
 {

@@ -31,6 +31,7 @@ CREATE TABLE `comment_subscription` (
     `created` DATETIME NOT NULL,
     INDEX `IDX_3B2FA8AE7E3C61F9` (`owner_id`),
     INDEX `IDX_3B2FA8AE89329D25` (`resource_id`),
+    UNIQUE INDEX `UNIQ_3B2FA8AE7E3C61F989329D25` (`owner_id`, `resource_id`),
     PRIMARY KEY(`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB;
 
