@@ -45,16 +45,6 @@ Then install it like any other Omeka module and follow the config instructions.
 Note: Akismet requires a dependency that is not installed automatically.
 
 
-Requirements
-------------
-
-The comment module makes use of both ReCaptchas and the Akismet spam-detection
-service. You will want to get API keys to both of these services and add them to
-Omeka S main configuration for ReCaptchas key on inside the main settings page.
-
-If not enabled, a simple anti-spam is available too.
-
-
 Displaying Comments
 -------------------
 
@@ -62,12 +52,13 @@ The comments are displayed automatically on item set, item or media pages
 according to options set in site settings. They can be added to resource pages
 via the resource blocks too.
 
-To manage the display more precisely, use resource blocks or the module [Blocks Disposition], or add the following code in your theme:
+To manage the display more precisely, use resource blocks or the module
+[Blocks Disposition], or add the following code in your theme:
 
 ```php
-<?php // Or via the helpers. -->
+<?php // Or via the helpers. ?>
 <div id="comments-container" class="block block-comments-container">
-    <?= $this->comments($resource) ?>
+    <?= $this->commentsResource($resource) ?>
     <?= $this->commentForm($resource) ?>
 </div>
 
@@ -81,6 +72,142 @@ themed.
 In the admin board, the comments are available in the details of the browse
 pages and in the show pages of each resource. They can be filtered and managed
 in the main comment page.
+
+
+Email Notifications
+-------------------
+
+The module provides two types of email notifications:
+
+### Subscriber notifications
+
+Users can subscribe to resources to be notified when new comments are published.
+When a logged-in user posts a comment, they are automatically subscribed to that
+resource. When a comment is approved (published), all subscribers to that resource
+receive an email notification. Subscribers are notified when:
+
+- A new comment is created and immediately approved (no moderation required)
+- An existing comment is approved by a moderator
+
+Subscribers are *not* notified for comments pending moderation.
+
+### Moderator notifications
+
+Moderators can be notified by email when comments require attention. To enable
+this, add one or more email addresses in the main settings under "Notify public
+comments by email" (one email per line).
+
+Moderators are notified when:
+
+| Event                                      | Notification sent |
+|--------------------------------------------|-------------------|
+| New comment created (approved or pending)  | Yes               |
+| Comment edited by user                     | Yes               |
+| Comment flagged by user                    | Yes               |
+
+The flagged comment notification includes:
+- Resource ID and title
+- Comment author name and email
+- Full comment body
+- Direct link to the admin review page
+
+### Customizing email templates
+
+All email subjects and bodies can be customized in the main settings. Each email
+type has configurable subject and body fields with placeholder support:
+
+Subscriber notification (sent to users who subscribed to a resource):
+- Placeholders: `{site_name}`, `{resource_id}`, `{resource_title}`, `{resource_url}`, `{comment_author}`, `{comment_body}`
+
+Moderator notification (sent when a comment is created or edited):
+- Placeholders: `{site_name}`, `{resource_id}`, `{resource_title}`, `{resource_url}`, `{comment_author}`, `{comment_email}`, `{comment_body}`
+
+Flagged comment notification (sent when a comment is flagged):
+- Placeholders: `{site_name}`, `{resource_id}`, `{resource_title}`, `{comment_author}`, `{comment_email}`, `{comment_body}`, `{admin_url}`
+
+If a template field is left empty, the default template is used.
+
+
+Comment History
+---------------
+
+All changes to comments are tracked in a history log. The following actions are
+recorded:
+
+| Action      | Data stored                    |
+|-------------|--------------------------------|
+| `edit`      | Previous body content          |
+| `approve`   | -                              |
+| `unapprove` | -                              |
+| `flag`      | -                              |
+| `unflag`    | -                              |
+| `spam`      | -                              |
+| `unspam`    | -                              |
+
+Each history entry includes:
+- Action type
+- Timestamp (ISO 8601 format)
+- User ID (who performed the action)
+- Additional data (when applicable)
+
+The history is available via the API (`o:history`) and can be used to review
+changes or restore previous versions of a comment.
+
+
+Options
+-------
+
+The comment module makes use of both ReCaptchas and the Akismet spam-detection
+service. You will want to get API keys to both of these services and add them to
+Omeka S main configuration for ReCaptchas key on inside the main settings page.
+
+If not enabled, a simple anti-spam is available too.
+
+### Rate limiting
+
+To prevent spam and abuse, a rate limiting feature is available. Configure it in
+the main settings:
+
+- Max comments: Maximum number of comments allowed per IP address within the
+  time period (set to 0 to disable)
+- Period (minutes): Time window for the rate limit
+
+When the limit is exceeded, users receive a "Too many comments" error and must
+wait before posting again.
+
+### Alias mode
+
+Logged-in users can optionally comment using an alias (custom name and email)
+instead of their account information. This feature is disabled by default. To
+enable it, go to main settings and enable "Allow users to comment with an alias".
+
+When enabled, users see a choice when posting a comment:
+- Account: Uses their registered name and email
+- Use an alias: Allows entering a custom name and email
+
+The comment remains linked to the user's account (visible to administrators),
+but the displayed name and email are the custom values. This is useful for users
+who want to comment under a pseudonym while still being accountable.
+
+Note: The alias name and email are stored with each comment independently, so
+changing the user's account information later does not affect existing comments.
+
+### Anonymous mode
+
+Logged-in users can optionally comment anonymously. This feature is disabled by
+default. To enable it, go to main settings and enable "Allow users to comment
+anonymously"
+
+When enabled, users see an additional option when posting a comment:
+- Account: Uses their registered name and email
+- Comment anonymously: Displays "[Anonymous]" as the author name
+
+The comment remains linked to the user's account for moderation purposes (visible
+to administrators), but the public display shows "[Anonymous]" instead of the
+user's name. The email is not stored with the comment.
+
+Both alias mode and anonymous mode can be enabled simultaneously, giving users
+three options: account, alias, or anonymous.
 
 
 Use Cases
@@ -115,8 +242,14 @@ TODO
 ----
 
 - [x] Move some parameters from main settings to site settings.
+- [x] Add comment edit history tracking.
+- [x] Add rate limiting for spam prevention.
+- [x] Add alias mode for logged-in users.
+- [x] Add anonymous mode for logged-in users.
+- [ ] Use PrepareMessage from module Common for email templates.
 - [ ] Convert comment into annotations (module Annotate).
 - [ ] Manage comments with module Guest.
+- [ ] Manage comments on site pages.
 
 
 Warning
@@ -167,7 +300,7 @@ of the CeCILL license and that you accept its terms.
 Copyright
 ---------
 
-* Copyright Daniel Berthereau, 2018-2025 (see [Daniel-KM])
+* Copyright Daniel Berthereau, 2018-2026 (see [Daniel-KM])
 
 First version was a full rewrite from the RRCHNM Omeka Classic [Commenting plugin].
 Next improvements were implemented for the [Musée de Bretagne], currently under
