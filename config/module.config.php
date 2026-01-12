@@ -30,9 +30,9 @@ return [
     ],
     'view_helpers' => [
         'invokables' => [
+            'commentIsSubscribed' => View\Helper\CommentIsSubscribed::class,
             'commentsResource' => View\Helper\CommentsResource::class,
             'commentSubscriptionButton' => View\Helper\CommentSubscriptionButton::class,
-            'commentIsSubscribed' => View\Helper\CommentIsSubscribed::class,
         ],
         'factories' => [
             'commentForm' => Service\ViewHelper\CommentFormFactory::class,

@@ -34,6 +34,7 @@ if (!class_exists('Common\TraitModule', false)) {
 
 use Comment\Entity\Comment;
 use Comment\Entity\CommentSubscription;
+use Comment\Service\CommentCache;
 use Common\TraitModule;
 use Laminas\EventManager\Event;
 use Laminas\EventManager\SharedEventManagerInterface;
@@ -63,14 +64,6 @@ class Module extends AbstractModule
 
     const NAMESPACE = __NAMESPACE__;
 
-    /**
-     * @var array Cache of comments by resource.
-     */
-    protected $cache = [
-        'owners' => [],
-        'resources' => [],
-        'sites' => [],
-    ];
 
     public function onBootstrap(MvcEvent $event): void
     {
@@ -318,18 +311,17 @@ class Module extends AbstractModule
                 [$this, 'searchQuery']
             );
 
-            // TODO Check if the cache may be really needed.
-            // // Cache some resources after a search.
-            // $sharedEventManager->attach(
-            //     $adapter,
-            //     'api.search.post',
-            //     [$this, 'cacheData']
-            // );
-            // $sharedEventManager->attach(
-            //     $adapter,
-            //     'api.read.post',
-            //     [$this, 'cacheData']
-            // );
+            // Cache comments after a search to avoid N+1 queries in filterJsonLd.
+            $sharedEventManager->attach(
+                $adapter,
+                'api.search.post',
+                [$this, 'cacheData']
+            );
+            $sharedEventManager->attach(
+                $adapter,
+                'api.read.post',
+                [$this, 'cacheData']
+            );
         }
 
         // No issue for creation: it cannot be created before the resource.
@@ -539,24 +531,20 @@ class Module extends AbstractModule
 
         $entityColumnName = $this->columnNameOfEntity($first);
 
-        // TODO Use a unique direct scalar query to get all values to cache? Cache?
         $api = $this->getServiceLocator()->get('Omeka\ApiManager');
         $comments = $api
             ->search('comments', [$entityColumnName => $resourceIds])
             ->getContent();
+
+        $byResource = [];
         foreach ($comments as $comment) {
-            $owner = $comment->owner();
-            if ($owner) {
-                $this->cache['owners'][$owner->id()][$comment->id()] = $comment;
-            }
             $resource = $comment->resource();
             if ($resource) {
-                $this->cache['resources'][$resource->id()][$comment->id()] = $comment;
+                $byResource[$resource->id()][$comment->id()] = $comment;
             }
-            $site = $comment->site();
-            if ($site) {
-                $this->cache['sites'][$site->id()][$comment->id()] = $comment;
-            }
+        }
+        foreach ($byResource as $resourceId => $resourceComments) {
+            CommentCache::setByResource($resourceId, array_values($resourceComments));
         }
     }
 
@@ -571,23 +559,29 @@ class Module extends AbstractModule
             return;
         }
 
-        /**
-         * @var \Omeka\Api\Manager $api
-         */
-        $services = $this->getServiceLocator();
-        $api = $services->get('Omeka\ApiManager');
-
         $resource = $event->getTarget();
-        $entityColumnName = $this->columnNameOfRepresentation($resource);
+        $resourceId = $resource->id();
 
         $jsonLd = $event->getParam('jsonLd');
 
-        // The reference is output from api and json-ld serialized early.
-        $comments = $api
-            ->search('comments', [$entityColumnName => $resource->id()], ['responseContent' => 'reference'])
-            ->getContent();
-        foreach ($comments as $child) {
-            $jsonLd['o:comment'][] = $child->jsonSerialize();
+        // Use cache if available (populated by cacheData on api.search.post).
+        if (CommentCache::hasResource($resourceId)) {
+            $comments = CommentCache::getByResource($resourceId);
+        } else {
+            // Fallback to API query if not in cache.
+            $api = $this->getServiceLocator()->get('Omeka\ApiManager');
+            $entityColumnName = $this->columnNameOfRepresentation($resource);
+            $comments = $api
+                ->search('comments', [$entityColumnName => $resourceId], ['responseContent' => 'reference'])
+                ->getContent();
+            // Store in cache for potential reuse.
+            CommentCache::setByResource($resourceId, $comments);
+        }
+
+        foreach ($comments as $comment) {
+            $jsonLd['o:comment'][] = is_object($comment) && method_exists($comment, 'jsonSerialize')
+                ? $comment->jsonSerialize()
+                : $comment->getReference()->jsonSerialize();
         }
 
         $event->setParam('jsonLd', $jsonLd);
