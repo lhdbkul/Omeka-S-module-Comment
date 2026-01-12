@@ -337,18 +337,24 @@ class Module extends AbstractModule
         // The deletion is managed automatically via sql (set null).
 
         // Warn subscribed users after creation or update of a comment.
+        // Only notifies when a comment is approved (published).
         $sharedEventManager->attach(
             \Comment\Api\Adapter\CommentAdapter::class,
             'api.create.post',
             [$this, 'handleCreateUpdateComment']
         );
-        /* // TODO For now, comments cannot be updated and it should be a real update to notify.
+        // Notify subscribers when a comment is approved (e.g., by admin).
         $sharedEventManager->attach(
             \Comment\Api\Adapter\CommentAdapter::class,
             'api.update.post',
             [$this, 'handleCreateUpdateComment']
         );
-        */
+        // Notify moderators when a comment is flagged.
+        $sharedEventManager->attach(
+            \Comment\Api\Adapter\CommentAdapter::class,
+            'api.update.post',
+            [$this, 'handleFlaggedComment']
+        );
 
         // Add headers to comment views in admin.
         $sharedEventManager->attach(
@@ -620,20 +626,46 @@ class Module extends AbstractModule
     public function handleCreateUpdateComment(Event $event): void
     {
         // Get all users who subscribed to comments on this resource to notify.
+        // Only notify when the comment is approved (published).
         /**
          * @var \Omeka\Api\Manager $api
          * @var \Omeka\Api\Request $request
          * @var \Omeka\Api\Response $response
-         * @var \Omeka\Entity\Resource $resource
+         * @var \Comment\Entity\Comment $comment
          * @var \Common\Mvc\Controller\Plugin\SendEmail $sendEmail
          * @var \Comment\Entity\CommentSubscription $subscription
          */
         $services = $this->getServiceLocator();
-        $api = $services->get('Omeka\ApiManager');
         $request = $event->getParam('request');
         $response = $event->getParam('response');
-        $resource = $response->getContent();
 
+        /** @var \Comment\Entity\Comment $comment */
+        $comment = $response->getContent();
+
+        // Only notify if the comment is approved (published).
+        if (!$comment->isApproved()) {
+            return;
+        }
+
+        // For updates, check if this is a transition to approved status.
+        // We only want to notify when a comment becomes approved, not on every update.
+        $isUpdate = $request->getOperation() === \Omeka\Api\Request::UPDATE
+            || $request->getOperation() === \Omeka\Api\Request::BATCH_UPDATE;
+        if ($isUpdate) {
+            // Check if 'approved' was changed in this update.
+            $data = $request->getContent();
+            // Only notify if 'o:approved' was explicitly set to true in this update.
+            if (!isset($data['o:approved']) || !$data['o:approved']) {
+                return;
+            }
+        }
+
+        $resource = $comment->getResource();
+        if (!$resource) {
+            return;
+        }
+
+        $api = $services->get('Omeka\ApiManager');
         $subscriptions = $api
             ->search('comment_subscriptions', ['resource_id' => $resource->getId()], ['responseContent' => 'resource'])
             ->getContent();
@@ -642,15 +674,12 @@ class Module extends AbstractModule
         }
 
         $adapter = $services->get('Omeka\ApiAdapterManager')->get('resources');
-        $settings =    $services->get('Omeka\Settings');
+        $settings = $services->get('Omeka\Settings');
         $translator = $services->get('MvcTranslator');
         $sendEmail = $services->get('ControllerPluginManager')->get('sendEmail');
 
-        /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation $resource */
-        $resource = $adapter->getRepresentation($resource);
-
-        // For now, comments cannot be updated and it should be a real update to notify.
-        // $isUpdate = strpos($request->getOperation(), 'update') !== false;
+        /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation $resourceRepresentation */
+        $resourceRepresentation = $adapter->getRepresentation($resource);
 
         $subject = new PsrMessage(
             '[{site_name}] New comment', // @translate
@@ -658,20 +687,20 @@ class Module extends AbstractModule
         );
         $subject = (string) $subject->setTranslator($translator);
 
-        $resourceUrl = $resource->siteUrl(null, true);
+        $resourceUrl = $resourceRepresentation->siteUrl(null, true);
 
         $body = new PsrMessage(<<<'TXT'
             Hi,
-            
+
             A new comment was published for resource #{resource_id} ({resource_title}).
-            
+
             You can see it at {resource_url}#comments.
-            
+
             Sincerely,
             TXT, // @translate
             [
-                'resource_id' => $resource->id(),
-                'resource_title' => (string) $resource->displayTitle(),
+                'resource_id' => $resourceRepresentation->id(),
+                'resource_title' => (string) $resourceRepresentation->displayTitle(),
                 'resource_url' => $resourceUrl,
             ]
         );
@@ -681,6 +710,95 @@ class Module extends AbstractModule
         foreach ($subscriptions as $subscription) {
             $user = $subscription->getOwner();
             $sendEmail($body, $subject, [$user->getEmail() => $user->getName()]);
+        }
+    }
+
+    /**
+     * Notify moderators when a comment is flagged.
+     */
+    public function handleFlaggedComment(Event $event): void
+    {
+        /**
+         * @var \Omeka\Api\Request $request
+         * @var \Omeka\Api\Response $response
+         * @var \Comment\Entity\Comment $comment
+         */
+        $services = $this->getServiceLocator();
+        $settings = $services->get('Omeka\Settings');
+
+        // Check if notification emails are configured.
+        $notifyEmails = $settings->get('comment_public_notify_post');
+        if (!$notifyEmails) {
+            return;
+        }
+
+        $request = $event->getParam('request');
+        $data = $request->getContent();
+
+        // Only notify if 'o:flagged' was explicitly set to true in this update.
+        if (!isset($data['o:flagged']) || !$data['o:flagged']) {
+            return;
+        }
+
+        $response = $event->getParam('response');
+        /** @var \Comment\Entity\Comment $comment */
+        $comment = $response->getContent();
+
+        // Double-check the comment is actually flagged.
+        if (!$comment->isFlagged()) {
+            return;
+        }
+
+        $resource = $comment->getResource();
+        if (!$resource) {
+            return;
+        }
+
+        $adapter = $services->get('Omeka\ApiAdapterManager')->get('comments');
+        $translator = $services->get('MvcTranslator');
+        $sendEmail = $services->get('ControllerPluginManager')->get('sendEmail');
+
+        /** @var \Comment\Api\Representation\CommentRepresentation $commentRepresentation */
+        $commentRepresentation = $adapter->getRepresentation($comment);
+
+        $subject = new PsrMessage(
+            '[{site_name}] Comment flagged for review', // @translate
+            ['site_name' => $settings->get('installation_title')]
+        );
+        $subject = (string) $subject->setTranslator($translator);
+
+        $body = new PsrMessage(<<<'TXT'
+            Subject: {subject}
+
+            A comment has been flagged for review.
+
+            Resource: #{resource_id} ({resource_title})
+            Author: {comment_author} <{comment_email}>
+            Comment:
+
+            {comment_body}
+
+            Review at: {admin_url}
+
+            TXT, // @translate
+            [
+                'subject' => $subject,
+                'resource_id' => $resource->getId(),
+                'resource_title' => (string) $resource->getTitle(),
+                'comment_author' => $comment->getName() ?: 'Anonymous',
+                'comment_email' => $comment->getEmail() ?: 'N/A',
+                'comment_body' => $comment->getBody(),
+                'admin_url' => $commentRepresentation->adminUrl(),
+            ]
+        );
+        $body = (string) $body->setTranslator($translator);
+
+        // Parse email addresses from the setting (one per line).
+        $emails = array_filter(array_map('trim', explode("\n", $notifyEmails)));
+        foreach ($emails as $email) {
+            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $sendEmail($body, $subject, $email);
+            }
         }
     }
 

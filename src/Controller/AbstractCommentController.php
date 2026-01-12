@@ -224,6 +224,25 @@ abstract class AbstractCommentController extends AbstractActionController
         /** @var \Comment\Api\Representation\CommentRepresentation $comment */
         $comment = $response->getContent();
 
+        // Auto-subscribe the user to the resource when they comment.
+        if ($user) {
+            try {
+                // Check if already subscribed.
+                $this->api()->read('comment_subscriptions', [
+                    'owner' => $user->getId(),
+                    'resource' => $resourceId,
+                ]);
+            } catch (NotFoundException $e) {
+                // Not subscribed yet, create subscription.
+                $this->api()->create('comment_subscriptions', [
+                    'o:owner' => ['o:id' => $user->getId()],
+                    'o:resource' => ['o:id' => $resourceId],
+                ]);
+            } catch (\Exception $e) {
+                // Ignore other errors silently.
+            }
+        }
+
         if ($data['o:approved']) {
             $this->messenger()->addSuccess('Your comment is online.'); // @translate
         } else {
