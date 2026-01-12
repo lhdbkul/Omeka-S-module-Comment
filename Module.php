@@ -187,12 +187,12 @@ class Module extends AbstractModule
         // Check if public can comment and flag, and read comments and own ones.
         if ($anonymousViewComment) {
             if ($anonymousAllowComment) {
-                $entityRights = ['read', 'create', 'update'];
+                $entityRights = ['read', 'create', 'update', 'change-owner'];
                 $adapterRights = ['search', 'read', 'create', 'update'];
                 $controllerRights = ['show', 'flag', 'add'];
                 // Anonymous can never edit, it is a non-sense.
             } else {
-                $entityRights = ['read', 'update'];
+                $entityRights = ['read', 'update', 'change-owner'];
                 $adapterRights = ['search', 'read', 'update'];
                 $controllerRights = ['show', 'flag'];
             }
@@ -204,7 +204,7 @@ class Module extends AbstractModule
 
         $acl
             // Identified users can comment. Reviewer and above can approve.
-            ->allow($roles, [Comment::class], ['read', 'create', 'update'])
+            ->allow($roles, [Comment::class], ['read', 'create', 'update', 'change-owner'])
             ->allow($roles, [Api\Adapter\CommentAdapter::class], ['search', 'read', 'create', 'update'])
             ->allow($roles, [Controller\Site\CommentController::class], ['show', 'flag', 'add'])
             ->allow($roles, [Controller\Admin\CommentController::class], ['browse', 'flag', 'add', 'show-details'])
