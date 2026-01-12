@@ -34,7 +34,6 @@ if (!class_exists('Common\TraitModule', false)) {
 
 use Comment\Entity\Comment;
 use Comment\Entity\CommentSubscription;
-use Common\Stdlib\PsrMessage;
 use Common\TraitModule;
 use Laminas\EventManager\Event;
 use Laminas\EventManager\SharedEventManagerInterface;
@@ -625,17 +624,13 @@ class Module extends AbstractModule
 
     public function handleCreateUpdateComment(Event $event): void
     {
-        // Get all users who subscribed to comments on this resource to notify.
-        // Only notify when the comment is approved (published).
+        // Notify subscribers when a comment is approved (published).
+        // Uses a background job for better performance.
         /**
-         * @var \Omeka\Api\Manager $api
          * @var \Omeka\Api\Request $request
          * @var \Omeka\Api\Response $response
          * @var \Comment\Entity\Comment $comment
-         * @var \Common\Mvc\Controller\Plugin\SendEmail $sendEmail
-         * @var \Comment\Entity\CommentSubscription $subscription
          */
-        $services = $this->getServiceLocator();
         $request = $event->getParam('request');
         $response = $event->getParam('response');
 
@@ -652,7 +647,6 @@ class Module extends AbstractModule
         $isUpdate = $request->getOperation() === \Omeka\Api\Request::UPDATE
             || $request->getOperation() === \Omeka\Api\Request::BATCH_UPDATE;
         if ($isUpdate) {
-            // Check if 'approved' was changed in this update.
             $data = $request->getContent();
             // Only notify if 'o:approved' was explicitly set to true in this update.
             if (!isset($data['o:approved']) || !$data['o:approved']) {
@@ -665,63 +659,19 @@ class Module extends AbstractModule
             return;
         }
 
-        $api = $services->get('Omeka\ApiManager');
-        $subscriptions = $api
-            ->search('comment_subscriptions', ['resource_id' => $resource->getId()], ['responseContent' => 'resource'])
-            ->getContent();
-        if (!$subscriptions) {
-            return;
-        }
-
-        $adapter = $services->get('Omeka\ApiAdapterManager')->get('resources');
-        $settings = $services->get('Omeka\Settings');
-        $translator = $services->get('MvcTranslator');
-        $sendEmail = $services->get('ControllerPluginManager')->get('sendEmail');
-
-        /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation $resourceRepresentation */
-        $resourceRepresentation = $adapter->getRepresentation($resource);
-
-        $siteName = $settings->get('installation_title');
-        $resourceUrl = $resourceRepresentation->siteUrl(null, true);
-
-        // Use configurable email templates.
-        $subjectTemplate = $settings->get('comment_email_subscriber_subject')
-            ?: '[{site_name}] New comment'; // @translate
-        $bodyTemplate = $settings->get('comment_email_subscriber_body')
-            ?: <<<'MAIL'
-                Hi,
-
-                A new comment was published for resource #{resource_id} ({resource_title}).
-
-                You can see it at {resource_url}#comments.
-
-                Sincerely,
-                MAIL; // @translate
-
-        $placeholders = [
-            'site_name' => $siteName,
-            'resource_id' => $resourceRepresentation->id(),
-            'resource_title' => (string) $resourceRepresentation->displayTitle(),
-            'resource_url' => $resourceUrl,
-            'comment_author' => $comment->getName() ?: 'Anonymous',
-            'comment_body' => $comment->getBody(),
-        ];
-
-        $subject = new PsrMessage($subjectTemplate, $placeholders);
-        $subject = (string) $subject->setTranslator($translator);
-
-        $body = new PsrMessage($bodyTemplate, $placeholders);
-        $body = (string) $body->setTranslator($translator);
-
-        // TODO Use a background job.
-        foreach ($subscriptions as $subscription) {
-            $user = $subscription->getOwner();
-            $sendEmail($body, $subject, [$user->getEmail() => $user->getName()]);
-        }
+        // Dispatch background job for sending notifications.
+        $services = $this->getServiceLocator();
+        $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
+        $dispatcher->dispatch(\Comment\Job\SendNotifications::class, [
+            'type' => 'subscribers',
+            'comment_id' => $comment->getId(),
+            'resource_id' => $resource->getId(),
+        ]);
     }
 
     /**
      * Notify moderators when a comment is flagged.
+     * Uses a background job for better performance.
      */
     public function handleFlaggedComment(Event $event): void
     {
@@ -761,54 +711,13 @@ class Module extends AbstractModule
             return;
         }
 
-        $adapter = $services->get('Omeka\ApiAdapterManager')->get('comments');
-        $translator = $services->get('MvcTranslator');
-        $sendEmail = $services->get('ControllerPluginManager')->get('sendEmail');
-
-        /** @var \Comment\Api\Representation\CommentRepresentation $commentRepresentation */
-        $commentRepresentation = $adapter->getRepresentation($comment);
-
-        $siteName = $settings->get('installation_title');
-
-        // Use configurable email templates.
-        $subjectTemplate = $settings->get('comment_email_flagged_subject')
-            ?: '[{site_name}] Comment flagged for review'; // @translate
-        $bodyTemplate = $settings->get('comment_email_flagged_body')
-            ?: <<<'MAIL'
-                A comment has been flagged for review.
-
-                Resource: #{resource_id} ({resource_title})
-                Author: {comment_author} <{comment_email}>
-
-                Comment:
-                {comment_body}
-
-                Review at: {admin_url}
-                MAIL; // @translate
-
-        $placeholders = [
-            'site_name' => $siteName,
+        // Dispatch background job for sending notifications.
+        $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
+        $dispatcher->dispatch(\Comment\Job\SendNotifications::class, [
+            'type' => 'flagged',
+            'comment_id' => $comment->getId(),
             'resource_id' => $resource->getId(),
-            'resource_title' => (string) $resource->getTitle(),
-            'comment_author' => $comment->getName() ?: 'Anonymous',
-            'comment_email' => $comment->getEmail() ?: 'N/A',
-            'comment_body' => $comment->getBody(),
-            'admin_url' => $commentRepresentation->adminUrl(),
-        ];
-
-        $subject = new PsrMessage($subjectTemplate, $placeholders);
-        $subject = (string) $subject->setTranslator($translator);
-
-        $body = new PsrMessage($bodyTemplate, $placeholders);
-        $body = (string) $body->setTranslator($translator);
-
-        // Parse email addresses from the setting (one per line).
-        $emails = array_filter(array_map('trim', explode("\n", $notifyEmails)));
-        foreach ($emails as $email) {
-            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $sendEmail($body, $subject, $email);
-            }
-        }
+        ]);
     }
 
     /**

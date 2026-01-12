@@ -10,7 +10,6 @@ use Laminas\Http\PhpEnvironment\RemoteAddress;
 use Laminas\Http\Response;
 use Laminas\Mvc\Controller\AbstractActionController;
 use Omeka\Api\Exception\NotFoundException;
-use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
 
 abstract class AbstractCommentController extends AbstractActionController
 {
@@ -250,11 +249,12 @@ abstract class AbstractCommentController extends AbstractActionController
         }
 
         if ($this->settings()->get('comment_public_notify_post')) {
-            // TODO Use adapter to get representation.
-            $representation = $this->api()
-                ->read('resources', $resourceId)
-                ->getContent();
-            $this->notifyEmail($representation, $comment);
+            // Dispatch background job for moderator notification.
+            $this->jobDispatcher()->dispatch(\Comment\Job\SendNotifications::class, [
+                'type' => 'moderators',
+                'comment_id' => $comment->id(),
+                'resource_id' => $resourceId,
+            ]);
         }
 
         $toModerate = !$data['o:approved'] || $data['o:spam'];
@@ -360,11 +360,12 @@ abstract class AbstractCommentController extends AbstractActionController
         $comment = $response->getContent();
 
         if ($this->settings()->get('comment_public_notify_post')) {
-            // TODO Use adapter to get representation.
-            $representation = $this->api()
-                ->read('resources', $resourceId)
-                ->getContent();
-            $this->notifyEmail($representation, $comment);
+            // Dispatch background job for moderator notification.
+            $this->jobDispatcher()->dispatch(\Comment\Job\SendNotifications::class, [
+                'type' => 'moderators',
+                'comment_id' => $comment->id(),
+                'resource_id' => $resourceId,
+            ]);
         }
 
         // $parent = $comment->parent();
@@ -594,56 +595,6 @@ abstract class AbstractCommentController extends AbstractActionController
             $data['comment_author_name'] = $postData['o:name'];
         }
         return $data;
-    }
-
-    /**
-     * Notify by email for a comments on a resource.
-     *
-     * @param AbstractResourceEntityRepresentation $resource
-     * @param CommentRepresentation $comment
-     */
-    protected function notifyEmail(AbstractResourceEntityRepresentation $resource, CommentRepresentation $comment): void
-    {
-        $settings = $this->settings();
-        $siteName = $settings->get('installation_title')
-            ?: @$_SERVER['SERVER_NAME']
-            ?: sprintf('Server (%s)', @$_SERVER['SERVER_ADDR']); // @translate
-
-        // Use configurable email templates.
-        $subjectTemplate = $settings->get('comment_email_moderator_subject')
-            ?: '[{site_name}] New public comment'; // @translate
-        $bodyTemplate = $settings->get('comment_email_moderator_body')
-            ?: <<<'MAIL'
-                A comment was added to resource #{resource_id} ({resource_title}).
-
-                Author: {comment_author} <{comment_email}>
-
-                Comment:
-                {comment_body}
-
-                Review at: {resource_url}
-                MAIL; // @translate
-
-        $placeholders = [
-            'site_name' => $siteName,
-            'resource_id' => $resource->id(),
-            'resource_title' => (string) $resource->displayTitle(),
-            'resource_url' => $resource->adminUrl(),
-            'comment_author' => $comment->name() ?: 'Anonymous',
-            'comment_email' => $comment->email() ?: 'N/A',
-            'comment_body' => $comment->body(),
-        ];
-
-        $subject = (new PsrMessage($subjectTemplate, $placeholders))
-            ->setTranslator($this->translator());
-
-        $body = (new PsrMessage($bodyTemplate, $placeholders))
-            ->setTranslator($this->translator());
-
-        $to = $settings->get('comment_public_notify_post');
-
-        /** @var \Common\Mvc\Controller\Plugin\SendEmail */
-        $this->sendEmail($body, $subject, $to);
     }
 
     /**
