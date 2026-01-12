@@ -189,12 +189,12 @@ class Module extends AbstractModule
             if ($anonymousAllowComment) {
                 $entityRights = ['read', 'create', 'update', 'change-owner'];
                 $adapterRights = ['search', 'read', 'create', 'update'];
-                $controllerRights = ['show', 'flag', 'add'];
+                $controllerRights = ['browse', 'show', 'flag', 'add'];
                 // Anonymous can never edit, it is a non-sense.
             } else {
                 $entityRights = ['read', 'update', 'change-owner'];
                 $adapterRights = ['search', 'read', 'update'];
-                $controllerRights = ['show', 'flag'];
+                $controllerRights = ['browse', 'show', 'flag'];
             }
             $acl
                 ->allow(null, [Comment::class], $entityRights)
@@ -206,7 +206,7 @@ class Module extends AbstractModule
             // Identified users can comment. Reviewer and above can approve.
             ->allow($roles, [Comment::class], ['read', 'create', 'update', 'change-owner'])
             ->allow($roles, [Api\Adapter\CommentAdapter::class], ['search', 'read', 'create', 'update'])
-            ->allow($roles, [Controller\Site\CommentController::class], ['show', 'flag', 'add'])
+            ->allow($roles, [Controller\Site\CommentController::class], ['browse', 'show', 'flag', 'add'])
             ->allow($roles, [Controller\Admin\CommentController::class], ['browse', 'flag', 'add', 'show-details'])
             // Identified users can subscribe to comments.
             // There is no update, only delete.
