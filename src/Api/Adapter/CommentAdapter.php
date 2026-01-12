@@ -367,13 +367,23 @@ class CommentAdapter extends AbstractEntityAdapter
 
                 $entity->setBody($request->getValue('o:body', ''));
 
+                // Use request values for email/name if provided.
+                // This allows logged-in users to use a pseudo (custom name/email)
+                // while keeping the comment linked to their account.
                 $owner = $entity->getOwner();
-                if ($owner) {
+                $email = $request->getValue('o:email');
+                $name = $request->getValue('o:name');
+
+                if ($email !== null && $email !== '') {
+                    $entity->setEmail($email);
+                } elseif ($owner) {
                     $entity->setEmail($owner->getEmail());
+                }
+
+                if ($name !== null) {
+                    $entity->setName($name);
+                } elseif ($owner) {
                     $entity->setName($owner->getName());
-                } else {
-                    $entity->setEmail($request->getValue('o:email'));
-                    $entity->setName($request->getValue('o:name'));
                 }
 
                 $entity->setWebsite($this->cleanWebsiteUrl($request->getValue('o:website', '')));

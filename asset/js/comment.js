@@ -175,6 +175,44 @@ var Comment = {
         // Warning, the url may be any page and may be a clean url.
         // Default in public side is "/s/my-site/comment".
         return $('[data-comment-url]').data('comment-url');
+    },
+
+    /**
+     * Initialize alias mode toggle for logged-in users.
+     */
+    initAliasMode: function() {
+        var $identityMode = $('input[name="comment_identity_mode"]');
+        if ($identityMode.length === 0) {
+            return;
+        }
+
+        var $aliasFields = $('.comment-alias-field').closest('.field, .input');
+        // If no .field wrapper, try parent elements.
+        if ($aliasFields.length === 0) {
+            $aliasFields = $('.comment-alias-field').parent();
+        }
+
+        // Function to toggle alias fields visibility.
+        function toggleAliasFields() {
+            var mode = $('input[name="comment_identity_mode"]:checked').val();
+            if (mode === 'alias') {
+                $aliasFields.show();
+                // Make email required when using alias.
+                $('#comment-alias-email').attr('required', true);
+            } else {
+                $aliasFields.hide();
+                $('#comment-alias-email').attr('required', false);
+                // Clear values when switching to account mode.
+                $('#comment-alias-name').val('');
+                $('#comment-alias-email').val('');
+            }
+        }
+
+        // Initial state.
+        toggleAliasFields();
+
+        // Listen for changes.
+        $identityMode.on('change', toggleAliasFields);
     }
 };
 
@@ -186,6 +224,9 @@ var Comment = {
         $('.comment-flag').click(Comment.flag);
         $('.comment-unflag').click(Comment.unflag);
         $('.comment-subscribe:not(.comment-login').click(Comment.subscribeResource);
+
+        // Initialize alias mode toggle.
+        Comment.initAliasMode();
 
         $('.comment-form button').on('click', function(e) {
             e.preventDefault();

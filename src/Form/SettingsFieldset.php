@@ -200,6 +200,16 @@ class SettingsFieldset extends Fieldset
             ])
 
             ->add([
+                'name' => 'comment_user_allow_alias',
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'element_group' => 'comment',
+                    'label' => 'Allow users to comment with an alias', // @translate
+                    'info' => 'If checked, logged-in users can choose to comment with a custom name and email instead of their account information. The comment remains linked to their account.', // @translate
+                ],
+            ])
+
+            ->add([
                 'name' => 'comment_wpapi_key',
                 'type' => Element\Text::class,
                 'options' => [

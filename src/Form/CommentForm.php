@@ -58,17 +58,40 @@ class CommentForm extends Form
             ->setAttribute('class', 'comment-form disable-unsaved-warning')
             ->setAttribute('data-resource-id', $resourceId);
 
-        if ($isAnonymous) {
+        // Check if alias mode is allowed for logged-in users.
+        $allowAlias = !$isAnonymous
+            && $this->settings->get('comment_user_allow_alias');
+
+        if ($allowAlias) {
+            // Add identity mode selector for logged-in users.
+            $this->add([
+                'type' => Element\Radio::class,
+                'name' => 'comment_identity_mode',
+                'options' => [
+                    'label' => 'Comment as', // @translate
+                    'value_options' => [
+                        'account' => $user->getName() . ' (' . $user->getEmail() . ')', // Show account info.
+                        'alias' => 'Use an alias', // @translate
+                    ],
+                ],
+                'attributes' => [
+                    'id' => 'comment-identity-mode',
+                    'value' => 'account', // Default to account.
+                ],
+            ]);
+
+            // Add alias fields (initially hidden via JS, shown when alias is selected).
             $this->add([
                 'type' => Element\Text::class,
                 'name' => 'o:name',
                 'options' => [
-                    'label' => 'Name', // @translate
+                    'label' => 'Alias', // @translate
                 ],
                 'attributes' => [
-                    'placeholder' => 'My name…', // @translate
+                    'id' => 'comment-alias-name',
+                    'placeholder' => 'My alias…', // @translate
                     'required' => false,
-                    'value' => $isAnonymous ? '' : $user->getName(),
+                    'class' => 'comment-alias-field',
                 ],
             ]);
 
@@ -79,9 +102,36 @@ class CommentForm extends Form
                     'label' => 'Email', // @translate
                 ],
                 'attributes' => [
-                    'placeholder' => 'My email (it won’t be displayed)…', // @translate
+                    'id' => 'comment-alias-email',
+                    'placeholder' => "My email (it won't be displayed)…", // @translate
+                    'required' => false,
+                    'class' => 'comment-alias-field',
+                ],
+            ]);
+        } elseif ($isAnonymous) {
+            $this->add([
+                'type' => Element\Text::class,
+                'name' => 'o:name',
+                'options' => [
+                    'label' => 'Name', // @translate
+                ],
+                'attributes' => [
+                    'placeholder' => 'My name…', // @translate
+                    'required' => false,
+                    'value' => '',
+                ],
+            ]);
+
+            $this->add([
+                'type' => Element\Email::class,
+                'name' => 'o:email',
+                'options' => [
+                    'label' => 'Email', // @translate
+                ],
+                'attributes' => [
+                    'placeholder' => "My email (it won't be displayed)…", // @translate
                     'required' => true,
-                    'value' => $isAnonymous ? '' : $user->getEmail(),
+                    'value' => '',
                 ],
             ]);
 

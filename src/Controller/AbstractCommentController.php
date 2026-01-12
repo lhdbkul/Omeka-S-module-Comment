@@ -140,8 +140,29 @@ abstract class AbstractCommentController extends AbstractActionController
 
         if ($user) {
             $data['o:owner'] = ['o:id' => $user->getId()];
-            $data['o:email'] = $user->getEmail();
-            $data['o:name'] = $user->getName();
+
+            // Check if user chose to use an alias instead of account info.
+            $allowAlias = $this->settings()->get('comment_user_allow_alias');
+            $useAlias = $allowAlias
+                && isset($data['comment_identity_mode'])
+                && $data['comment_identity_mode'] === 'alias';
+
+            if ($useAlias) {
+                // Use provided alias name and email.
+                // Validate that email is provided when using an alias.
+                if (empty($data['o:email'])) {
+                    return $this->jSend()->fail(null, new PsrMessage(
+                        'Email is required when using an alias.' // @translate
+                    ));
+                }
+                // Name can default to empty or use provided value.
+                $data['o:name'] = $data['o:name'] ?? '';
+            } else {
+                // Use account info.
+                $data['o:email'] = $user->getEmail();
+                $data['o:name'] = $user->getName();
+            }
+
             $role = $user->getRole();
             $data['o:approved'] = in_array($role, $this->approbators)
                 || !$this->settings()->get('comment_user_require_moderation');
