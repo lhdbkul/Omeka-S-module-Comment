@@ -1,0 +1,23 @@
+<?php
+/**
+ * @var \Laminas\View\Renderer\PhpRenderer $this
+ * @var \Omeka\Api\Representation\AbstractResourceRepresentation $resource
+ */
+
+$plugins = $this->getHelperPluginManager();
+$translate = $plugins->get('translate');
+$escapeAttr = $plugins->get('escapeHtmlAttr');
+
+$subscribed = $plugins->get('commentIsSubscribed')($resource);
+
+$class = $subscribed ? 'subscribed' : 'unsubscribed';
+$text = $subscribed
+    ? $translate('I’m subscribed to this resource')
+    : $translate('I’m not subscribed to this resource');
+?>
+
+<div class="block resource-block block-comment-subscription-status subscription-status-<?= $class ?>">
+    <div class="icon comment-subscribe <?= $class ?>" data-id="<?= $resource->id() ?>" title="<?= $escapeAttr($text) ?>" aria-label="<?= $escapeAttr($text) ?>">
+        <span class="comment-subscription-icon"></span>
+    </div>
+</div>

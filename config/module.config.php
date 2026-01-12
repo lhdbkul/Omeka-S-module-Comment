@@ -60,6 +60,7 @@ return [
             'commentForm' => Site\ResourcePageBlockLayout\CommentForm::class,
             'comments' => Site\ResourcePageBlockLayout\Comments::class,
             'commentSubscriptionButton' => Site\ResourcePageBlockLayout\CommentSubscriptionButton::class,
+            'commentSubscriptionStatus' => Site\ResourcePageBlockLayout\CommentSubscriptionStatus::class,
         ],
     ],
     'navigation_links' => [
