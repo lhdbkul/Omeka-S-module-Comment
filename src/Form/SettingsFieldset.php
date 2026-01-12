@@ -210,6 +210,16 @@ class SettingsFieldset extends Fieldset
             ])
 
             ->add([
+                'name' => 'comment_user_allow_anonymous',
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'element_group' => 'comment',
+                    'label' => 'Allow users to comment anonymously', // @translate
+                    'info' => 'If checked, logged-in users can choose to comment anonymously. Their name will be displayed as "[Anonymous]" but the comment remains linked to their account for moderation purposes.', // @translate
+                ],
+            ])
+
+            ->add([
                 'name' => 'comment_wpapi_key',
                 'type' => Element\Text::class,
                 'options' => [

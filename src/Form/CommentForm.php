@@ -58,21 +58,31 @@ class CommentForm extends Form
             ->setAttribute('class', 'comment-form disable-unsaved-warning')
             ->setAttribute('data-resource-id', $resourceId);
 
-        // Check if alias mode is allowed for logged-in users.
+        // Check if alias/anonymous modes are allowed for logged-in users.
         $allowAlias = !$isAnonymous
             && $this->settings->get('comment_user_allow_alias');
+        $allowAnonymous = !$isAnonymous
+            && $this->settings->get('comment_user_allow_anonymous');
 
-        if ($allowAlias) {
+        if ($allowAlias || $allowAnonymous) {
+            // Build identity mode options dynamically.
+            $identityOptions = [
+                'account' => $user->getName() . ' (' . $user->getEmail() . ')', // Show account info.
+            ];
+            if ($allowAlias) {
+                $identityOptions['alias'] = 'Use an alias'; // @translate
+            }
+            if ($allowAnonymous) {
+                $identityOptions['anonymous'] = 'Comment anonymously'; // @translate
+            }
+
             // Add identity mode selector for logged-in users.
             $this->add([
                 'type' => Element\Radio::class,
                 'name' => 'comment_identity_mode',
                 'options' => [
                     'label' => 'Comment as', // @translate
-                    'value_options' => [
-                        'account' => $user->getName() . ' (' . $user->getEmail() . ')', // Show account info.
-                        'alias' => 'Use an alias', // @translate
-                    ],
+                    'value_options' => $identityOptions,
                 ],
                 'attributes' => [
                     'id' => 'comment-identity-mode',
@@ -81,33 +91,35 @@ class CommentForm extends Form
             ]);
 
             // Add alias fields (initially hidden via JS, shown when alias is selected).
-            $this->add([
-                'type' => Element\Text::class,
-                'name' => 'o:name',
-                'options' => [
-                    'label' => 'Alias', // @translate
-                ],
-                'attributes' => [
-                    'id' => 'comment-alias-name',
-                    'placeholder' => 'My alias…', // @translate
-                    'required' => false,
-                    'class' => 'comment-alias-field',
-                ],
-            ]);
+            if ($allowAlias) {
+                $this->add([
+                    'type' => Element\Text::class,
+                    'name' => 'o:name',
+                    'options' => [
+                        'label' => 'Alias', // @translate
+                    ],
+                    'attributes' => [
+                        'id' => 'comment-alias-name',
+                        'placeholder' => 'My alias…', // @translate
+                        'required' => false,
+                        'class' => 'comment-alias-field',
+                    ],
+                ]);
 
-            $this->add([
-                'type' => Element\Email::class,
-                'name' => 'o:email',
-                'options' => [
-                    'label' => 'Email', // @translate
-                ],
-                'attributes' => [
-                    'id' => 'comment-alias-email',
-                    'placeholder' => "My email (it won't be displayed)…", // @translate
-                    'required' => false,
-                    'class' => 'comment-alias-field',
-                ],
-            ]);
+                $this->add([
+                    'type' => Element\Email::class,
+                    'name' => 'o:email',
+                    'options' => [
+                        'label' => 'Email', // @translate
+                    ],
+                    'attributes' => [
+                        'id' => 'comment-alias-email',
+                        'placeholder' => "My email (it won't be displayed)…", // @translate
+                        'required' => false,
+                        'class' => 'comment-alias-field',
+                    ],
+                ]);
+            }
         } elseif ($isAnonymous) {
             $this->add([
                 'type' => Element\Text::class,

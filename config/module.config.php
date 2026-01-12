@@ -292,6 +292,8 @@ return [
                 TXT, // @translate
             'comment_user_require_moderation' => false,
             'comment_user_allow_edit' => false,
+            'comment_user_allow_alias' => false,
+            'comment_user_allow_anonymous' => false,
             'comment_wpapi_key' => '',
             'comment_antispam' => true,
             'comment_label' => 'Comments', // @translate

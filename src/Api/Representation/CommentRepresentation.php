@@ -156,6 +156,29 @@ class CommentRepresentation extends AbstractEntityRepresentation
         return $this->resource->getName();
     }
 
+    /**
+     * Get the display name for the comment author.
+     *
+     * Returns "[Anonymous]" if the comment was made by a logged-in user
+     * who chose to comment anonymously (empty name with owner).
+     */
+    public function displayName(): string
+    {
+        $name = $this->resource->getName();
+        if ($name !== '') {
+            return $name;
+        }
+
+        // If there's an owner but no name, it's anonymous mode.
+        $owner = $this->resource->getOwner();
+        if ($owner) {
+            return '[Anonymous]'; // @translate
+        }
+
+        // Truly anonymous comment with no name provided.
+        return '';
+    }
+
     public function website(): string
     {
         return $this->resource->getWebsite();

@@ -141,11 +141,14 @@ abstract class AbstractCommentController extends AbstractActionController
         if ($user) {
             $data['o:owner'] = ['o:id' => $user->getId()];
 
-            // Check if user chose to use an alias instead of account info.
+            // Check if user chose to use an alias or anonymous mode.
+            $identityMode = $data['comment_identity_mode'] ?? 'account';
+
             $allowAlias = $this->settings()->get('comment_user_allow_alias');
-            $useAlias = $allowAlias
-                && isset($data['comment_identity_mode'])
-                && $data['comment_identity_mode'] === 'alias';
+            $useAlias = $allowAlias && $identityMode === 'alias';
+
+            $allowAnonymous = $this->settings()->get('comment_user_allow_anonymous');
+            $useAnonymous = $allowAnonymous && $identityMode === 'anonymous';
 
             if ($useAlias) {
                 // Use provided alias name and email.
@@ -157,6 +160,10 @@ abstract class AbstractCommentController extends AbstractActionController
                 }
                 // Name can default to empty or use provided value.
                 $data['o:name'] = $data['o:name'] ?? '';
+            } elseif ($useAnonymous) {
+                // Anonymous mode: empty name and email.
+                $data['o:name'] = '';
+                $data['o:email'] = '';
             } else {
                 // Use account info.
                 $data['o:email'] = $user->getEmail();

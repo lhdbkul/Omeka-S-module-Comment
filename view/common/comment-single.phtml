@@ -24,10 +24,16 @@ $siteSetting = $plugins->get('siteSetting');
 $escapeAttr = $plugins->get('escapeHtmlAttr');
 $userIsAllowed = $plugins->get('userIsAllowed');
 
-if ($name = $comment->name()) {
+// Use displayName() which returns "[Anonymous]" for logged-in users
+// who chose to comment anonymously.
+$name = $comment->displayName();
+if ($name) {
     $website = $comment->website();
-    $authorText = $website ? $hyperlink($name, $website) : $name;
+    // Translate [Anonymous] if that's the value.
+    $displayName = $name === '[Anonymous]' ? $translate('[Anonymous]') : $name;
+    $authorText = $website ? $hyperlink($displayName, $website) : $escape($displayName);
 } else {
+    // Truly anonymous with no name provided.
     $authorText = $escape($translate('Anonymous'));
 }
 

@@ -178,9 +178,10 @@ var Comment = {
     },
 
     /**
-     * Initialize alias mode toggle for logged-in users.
+     * Initialize identity mode toggle for logged-in users.
+     * Handles account, alias, and anonymous modes.
      */
-    initAliasMode: function() {
+    initIdentityMode: function() {
         var $identityMode = $('input[name="comment_identity_mode"]');
         if ($identityMode.length === 0) {
             return;
@@ -193,26 +194,27 @@ var Comment = {
         }
 
         // Function to toggle alias fields visibility.
-        function toggleAliasFields() {
+        function toggleIdentityFields() {
             var mode = $('input[name="comment_identity_mode"]:checked').val();
             if (mode === 'alias') {
                 $aliasFields.show();
                 // Make email required when using alias.
                 $('#comment-alias-email').attr('required', true);
             } else {
+                // Hide for both 'account' and 'anonymous' modes.
                 $aliasFields.hide();
                 $('#comment-alias-email').attr('required', false);
-                // Clear values when switching to account mode.
+                // Clear values when switching away from alias mode.
                 $('#comment-alias-name').val('');
                 $('#comment-alias-email').val('');
             }
         }
 
         // Initial state.
-        toggleAliasFields();
+        toggleIdentityFields();
 
         // Listen for changes.
-        $identityMode.on('change', toggleAliasFields);
+        $identityMode.on('change', toggleIdentityFields);
     }
 };
 
@@ -225,8 +227,8 @@ var Comment = {
         $('.comment-unflag').click(Comment.unflag);
         $('.comment-subscribe:not(.comment-login').click(Comment.subscribeResource);
 
-        // Initialize alias mode toggle.
-        Comment.initAliasMode();
+        // Initialize identity mode toggle (account/alias/anonymous).
+        Comment.initIdentityMode();
 
         $('.comment-form button').on('click', function(e) {
             e.preventDefault();
