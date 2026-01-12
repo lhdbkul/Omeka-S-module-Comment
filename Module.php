@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 /*
- * @copyright Daniel Berthereau, 2017-2025
+ * @copyright Daniel Berthereau, 2017-2026
  * @license http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.txt
  *
  * This software is governed by the CeCILL license under French law and abiding
@@ -55,7 +55,7 @@ use Omeka\Permissions\Assertion\OwnsEntityAssertion;
  *
  * Add public and private commenting on resources and manage them.
  *
- * @copyright Daniel Berthereau, 2017-2025
+ * @copyright Daniel Berthereau, 2017-2026
  * @license http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.txt
  */
 class Module extends AbstractModule

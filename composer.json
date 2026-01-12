@@ -1,6 +1,6 @@
 {
     "name": "daniel-km/omeka-s-module-comment",
-    "description": "Comment (module for Omeka S)",
+    "description": "Module for Omeka S that allows visitors to comment on resources.",
     "type": "library",
     "license": "CECILL-2.1",
     "authors": [
@@ -17,6 +17,7 @@
     "keywords": [
         "Omeka S",
         "module",
+        "social",
         "comment",
         "public interaction",
         "crowdsourcing"
@@ -30,5 +31,17 @@
         "psr-4": {
             "CommentTest\\": "tests/CommentTest/"
         }
+    },
+    "config": {
+        "platform": {
+            "php": "7.4"
+        },
+        "allow-plugins": {
+            "composer/installers": true,
+            "oomphinc/composer-installers-extender": true
+        }
+    },
+    "extra": {
+        "installer-name" : "Comment"
     }
 }

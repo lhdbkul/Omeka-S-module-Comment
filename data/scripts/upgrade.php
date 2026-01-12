@@ -184,3 +184,66 @@ if (version_compare($oldVersion, '3.4.14', '<')) {
     );
     $messenger->addSuccess($message);
 }
+
+if (version_compare($oldVersion, '3.4.15', '<')) {
+    // Add history column for tracking comment changes.
+    $sql = <<<'SQL'
+        ALTER TABLE `comment`
+        ADD `history` LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json)' AFTER `modified`;
+        SQL;
+    try {
+        $connection->executeStatement($sql);
+    } catch (\Exception $e) {
+        // Already created.
+    }
+
+    // Remove edited column (now redundant with history).
+    $sql = <<<'SQL'
+        ALTER TABLE `comment`
+        DROP COLUMN `edited`;
+        SQL;
+    try {
+        $connection->executeStatement($sql);
+    } catch (\Exception $e) {
+        // Already dropped.
+    }
+
+    $message = new PsrMessage(
+        'Comment history is now tracked. Edits, flags, and moderation actions are recorded. The "edited" column has been removed.' // @translate
+    );
+    $messenger->addSuccess($message);
+}
+
+if (version_compare($oldVersion, '3.4.16', '<')) {
+    // Remove duplicate subscriptions before adding unique constraint.
+    // Keep the oldest subscription (smallest id) for each owner-resource pair.
+    $sql = <<<'SQL'
+        DELETE cs1 FROM `comment_subscription` cs1
+        INNER JOIN `comment_subscription` cs2
+        WHERE cs1.owner_id = cs2.owner_id
+          AND cs1.resource_id = cs2.resource_id
+          AND cs1.id > cs2.id;
+        SQL;
+    try {
+        $connection->executeStatement($sql);
+    } catch (\Exception $e) {
+        // Ignore errors.
+    }
+
+    // Add unique constraint on owner_id + resource_id.
+    // Name follows Doctrine convention: UNIQ_ + table hash + column hashes.
+    $sql = <<<'SQL'
+        ALTER TABLE `comment_subscription`
+        ADD UNIQUE INDEX `UNIQ_3B2FA8AE7E3C61F989329D25` (`owner_id`, `resource_id`);
+        SQL;
+    try {
+        $connection->executeStatement($sql);
+    } catch (\Exception $e) {
+        // Already exists.
+    }
+
+    $message = new PsrMessage(
+        'A unique constraint has been added to prevent duplicate subscriptions.' // @translate
+    );
+    $messenger->addSuccess($message);
+}
