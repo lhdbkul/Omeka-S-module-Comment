@@ -40,12 +40,18 @@ return [
     ],
     'form_elements' => [
         'invokables' => [
+            Form\CommentsBrowseFieldset::class => Form\CommentsBrowseFieldset::class,
             Form\CommentsSearchForm::class => Form\CommentsSearchForm::class,
             Form\SettingsFieldset::class => Form\SettingsFieldset::class,
             Form\SiteSettingsFieldset::class => Form\SiteSettingsFieldset::class,
         ],
         'factories' => [
             Form\CommentForm::class => Service\Form\CommentFormFactory::class,
+        ],
+    ],
+    'block_layouts' => [
+        'invokables' => [
+            'commentsBrowse' => Site\BlockLayout\CommentsBrowse::class,
         ],
     ],
     'resource_page_block_layouts' => [
@@ -226,6 +232,20 @@ return [
             'comment_max_length' => '',
             'comment_skip_gravatar' => '',
             'comment_legal_text' => '',
+        ],
+        'block_settings' => [
+            'commentsBrowse' => [
+                'query' => [],
+                'limit' => 12,
+                // 'pagination' => true,
+                // 'sort_headings' => [],
+                'components' => [
+                    'resource-heading',
+                    'resource-body',
+                    'thumbnail',
+                ],
+                'linkText' => '',
+            ],
         ],
     ],
 ];
