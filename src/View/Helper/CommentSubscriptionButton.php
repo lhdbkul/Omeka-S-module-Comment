@@ -83,7 +83,7 @@ class CommentSubscriptionButton extends AbstractHelper
             'urlBaseComment' => $urlBaseComment,
             'labelSubscribe' => $options['labelSubscribe'] ?? $options['label_subscribe'] ?? null,
             'labelUnsubscribe' => $options['labelUnsubscribe'] ?? $options['label_unsubscribe'] ?? null,
-            'showLabel' => $options['showLabel'] ?? $options['show_label'] ?? null,
+            'showLabel' => $options['showLabel'] ?? $options['show_label'] ?? false,
         ] + $options;
 
         return $partial($template, $args);

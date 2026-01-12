@@ -139,7 +139,7 @@ var Comment = {
             comment.find('.comment-unflag').first().hide();
         } else if (response.data.data.status === 'subscribed') {
             const resourceId = response.data.data.comment_subscription['o:resource']['o:id'];
-            $('.comment-subscribe[data-id="' + resourceId + '"]').each(function() {
+            $('.comment-subscribe[data-id="' + resourceId + '"]:not(.comment-login)').each(function() {
                 $(this)
                     .removeClass('unsubscribed')
                     .addClass('subscribed');
@@ -151,7 +151,7 @@ var Comment = {
             });
         } else if (response.data.data.status === 'unsubscribed') {
             const resourceId = response.data.data.comment_subscription['o:resource']['o:id'];
-            $('.comment-subscribe[data-id="' + resourceId + '"]').each(function() {
+            $('.comment-subscribe[data-id="' + resourceId + '"]:not(.comment-login)').each(function() {
                   $(this)
                       .removeClass('subscribed')
                       .addClass('unsubscribed');
@@ -185,7 +185,7 @@ var Comment = {
         $('.comment-edit').click(Comment.edit);
         $('.comment-flag').click(Comment.flag);
         $('.comment-unflag').click(Comment.unflag);
-        $('.comment-subscribe').click(Comment.subscribeResource);
+        $('.comment-subscribe:not(.comment-login').click(Comment.subscribeResource);
 
         $('.comment-form button').on('click', function(e) {
             e.preventDefault();
