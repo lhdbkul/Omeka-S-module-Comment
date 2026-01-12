@@ -681,29 +681,36 @@ class Module extends AbstractModule
         /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation $resourceRepresentation */
         $resourceRepresentation = $adapter->getRepresentation($resource);
 
-        $subject = new PsrMessage(
-            '[{site_name}] New comment', // @translate
-            ['site_name' => $settings->get('installation_title')]
-        );
-        $subject = (string) $subject->setTranslator($translator);
-
+        $siteName = $settings->get('installation_title');
         $resourceUrl = $resourceRepresentation->siteUrl(null, true);
 
-        $body = new PsrMessage(<<<'TXT'
-            Hi,
+        // Use configurable email templates.
+        $subjectTemplate = $settings->get('comment_email_subscriber_subject')
+            ?: '[{site_name}] New comment'; // @translate
+        $bodyTemplate = $settings->get('comment_email_subscriber_body')
+            ?: <<<'MAIL'
+                Hi,
 
-            A new comment was published for resource #{resource_id} ({resource_title}).
+                A new comment was published for resource #{resource_id} ({resource_title}).
 
-            You can see it at {resource_url}#comments.
+                You can see it at {resource_url}#comments.
 
-            Sincerely,
-            TXT, // @translate
-            [
-                'resource_id' => $resourceRepresentation->id(),
-                'resource_title' => (string) $resourceRepresentation->displayTitle(),
-                'resource_url' => $resourceUrl,
-            ]
-        );
+                Sincerely,
+                MAIL; // @translate
+
+        $placeholders = [
+            'site_name' => $siteName,
+            'resource_id' => $resourceRepresentation->id(),
+            'resource_title' => (string) $resourceRepresentation->displayTitle(),
+            'resource_url' => $resourceUrl,
+            'comment_author' => $comment->getName() ?: 'Anonymous',
+            'comment_body' => $comment->getBody(),
+        ];
+
+        $subject = new PsrMessage($subjectTemplate, $placeholders);
+        $subject = (string) $subject->setTranslator($translator);
+
+        $body = new PsrMessage($bodyTemplate, $placeholders);
         $body = (string) $body->setTranslator($translator);
 
         // TODO Use a background job.
@@ -761,36 +768,38 @@ class Module extends AbstractModule
         /** @var \Comment\Api\Representation\CommentRepresentation $commentRepresentation */
         $commentRepresentation = $adapter->getRepresentation($comment);
 
-        $subject = new PsrMessage(
-            '[{site_name}] Comment flagged for review', // @translate
-            ['site_name' => $settings->get('installation_title')]
-        );
+        $siteName = $settings->get('installation_title');
+
+        // Use configurable email templates.
+        $subjectTemplate = $settings->get('comment_email_flagged_subject')
+            ?: '[{site_name}] Comment flagged for review'; // @translate
+        $bodyTemplate = $settings->get('comment_email_flagged_body')
+            ?: <<<'MAIL'
+                A comment has been flagged for review.
+
+                Resource: #{resource_id} ({resource_title})
+                Author: {comment_author} <{comment_email}>
+
+                Comment:
+                {comment_body}
+
+                Review at: {admin_url}
+                MAIL; // @translate
+
+        $placeholders = [
+            'site_name' => $siteName,
+            'resource_id' => $resource->getId(),
+            'resource_title' => (string) $resource->getTitle(),
+            'comment_author' => $comment->getName() ?: 'Anonymous',
+            'comment_email' => $comment->getEmail() ?: 'N/A',
+            'comment_body' => $comment->getBody(),
+            'admin_url' => $commentRepresentation->adminUrl(),
+        ];
+
+        $subject = new PsrMessage($subjectTemplate, $placeholders);
         $subject = (string) $subject->setTranslator($translator);
 
-        $body = new PsrMessage(<<<'TXT'
-            Subject: {subject}
-
-            A comment has been flagged for review.
-
-            Resource: #{resource_id} ({resource_title})
-            Author: {comment_author} <{comment_email}>
-            Comment:
-
-            {comment_body}
-
-            Review at: {admin_url}
-
-            TXT, // @translate
-            [
-                'subject' => $subject,
-                'resource_id' => $resource->getId(),
-                'resource_title' => (string) $resource->getTitle(),
-                'comment_author' => $comment->getName() ?: 'Anonymous',
-                'comment_email' => $comment->getEmail() ?: 'N/A',
-                'comment_body' => $comment->getBody(),
-                'admin_url' => $commentRepresentation->adminUrl(),
-            ]
-        );
+        $body = new PsrMessage($bodyTemplate, $placeholders);
         $body = (string) $body->setTranslator($translator);
 
         // Parse email addresses from the setting (one per line).

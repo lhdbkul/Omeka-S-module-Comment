@@ -604,24 +604,43 @@ abstract class AbstractCommentController extends AbstractActionController
      */
     protected function notifyEmail(AbstractResourceEntityRepresentation $resource, CommentRepresentation $comment): void
     {
-        $site = @$_SERVER['SERVER_NAME'] ?: sprintf('Server (%s)', @$_SERVER['SERVER_ADDR']); // @translate
-        $subject = (new PsrMessage(
-            '[{site}] New public comment', // @translate
-            ['site' => $site]
-            ))->setTranslator($this->translator());
+        $settings = $this->settings();
+        $siteName = $settings->get('installation_title')
+            ?: @$_SERVER['SERVER_NAME']
+            ?: sprintf('Server (%s)', @$_SERVER['SERVER_ADDR']); // @translate
 
-        $body = (new PsrMessage(
-            'A comment was added to resource #{resource_id} ({resource_url}) by {name} <{email}}>.', // @translate
-            ['resource_id' => $resource->id(), 'resource_url' => $resource->adminUrl(), 'name' => $comment->name(), 'email' => $comment->email()]
-        ))->setTranslator($this->translator());
-        $body .= "\r\n";
-        $body .= (new PsrMessage(
-            'Comment: {msg}',  // @translate
-            ['msg' => $comment->body()]
-        ))->setTranslator($this->translator());
-        $body .= "\r\n\r\n";
+        // Use configurable email templates.
+        $subjectTemplate = $settings->get('comment_email_moderator_subject')
+            ?: '[{site_name}] New public comment'; // @translate
+        $bodyTemplate = $settings->get('comment_email_moderator_body')
+            ?: <<<'MAIL'
+                A comment was added to resource #{resource_id} ({resource_title}).
 
-        $to = $this->settings()->get('comment_public_notify_post');
+                Author: {comment_author} <{comment_email}>
+
+                Comment:
+                {comment_body}
+
+                Review at: {resource_url}
+                MAIL; // @translate
+
+        $placeholders = [
+            'site_name' => $siteName,
+            'resource_id' => $resource->id(),
+            'resource_title' => (string) $resource->displayTitle(),
+            'resource_url' => $resource->adminUrl(),
+            'comment_author' => $comment->name() ?: 'Anonymous',
+            'comment_email' => $comment->email() ?: 'N/A',
+            'comment_body' => $comment->body(),
+        ];
+
+        $subject = (new PsrMessage($subjectTemplate, $placeholders))
+            ->setTranslator($this->translator());
+
+        $body = (new PsrMessage($bodyTemplate, $placeholders))
+            ->setTranslator($this->translator());
+
+        $to = $settings->get('comment_public_notify_post');
 
         /** @var \Common\Mvc\Controller\Plugin\SendEmail */
         $this->sendEmail($body, $subject, $to);

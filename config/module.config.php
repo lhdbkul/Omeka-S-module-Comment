@@ -208,6 +208,40 @@ return [
             'comment_public_allow_comment' => true,
             'comment_public_require_moderation' => true,
             'comment_public_notify_post' => [],
+            // Email templates with placeholders.
+            'comment_email_subscriber_subject' => '[{site_name}] New comment', // @translate
+            'comment_email_subscriber_body' => <<<'TXT'
+                Hi,
+
+                A new comment was published for resource #{resource_id} ({resource_title}).
+
+                You can see it at {resource_url}#comments.
+
+                Sincerely,
+                TXT, // @translate
+            'comment_email_moderator_subject' => '[{site_name}] New public comment', // @translate
+            'comment_email_moderator_body' => <<<'TXT'
+                A comment was added to resource #{resource_id} ({resource_title}).
+
+                Author: {comment_author} <{comment_email}>
+
+                Comment:
+                {comment_body}
+
+                Review at: {resource_url}
+                TXT, // @translate
+            'comment_email_flagged_subject' => '[{site_name}] Comment flagged for review', // @translate
+            'comment_email_flagged_body' => <<<'TXT'
+                A comment has been flagged for review.
+
+                Resource: #{resource_id} ({resource_title})
+                Author: {comment_author} <{comment_email}>
+
+                Comment:
+                {comment_body}
+
+                Review at: {admin_url}
+                TXT, // @translate
             'comment_user_require_moderation' => false,
             'comment_user_allow_edit' => false,
             'comment_wpapi_key' => '',

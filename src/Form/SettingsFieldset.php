@@ -82,6 +82,114 @@ class SettingsFieldset extends Fieldset
                 ],
             ])
 
+            // Email templates for subscriber notifications.
+            ->add([
+                'name' => 'comment_email_subscriber_subject',
+                'type' => Element\Text::class,
+                'options' => [
+                    'element_group' => 'comment',
+                    'label' => 'Subscriber notification: subject', // @translate
+                    'info' => 'Placeholders: {site_name}', // @translate
+                ],
+                'attributes' => [
+                    'placeholder' => '[{site_name}] New comment', // @translate
+                ],
+            ])
+            ->add([
+                'name' => 'comment_email_subscriber_body',
+                'type' => Element\Textarea::class,
+                'options' => [
+                    'element_group' => 'comment',
+                    'label' => 'Subscriber notification: body', // @translate
+                    'info' => 'Placeholders: {site_name}, {resource_id}, {resource_title}, {resource_url}, {comment_author}, {comment_body}', // @translate
+                ],
+                'attributes' => [
+                    'rows' => 8,
+                    'placeholder' => <<<'TXT'
+                        Hi,
+
+                        A new comment was published for resource #{resource_id} ({resource_title}).
+
+                        You can see it at {resource_url}#comments.
+
+                        Sincerely,
+                        TXT, // @translate
+                ],
+            ])
+
+            // Email templates for moderator notifications.
+            ->add([
+                'name' => 'comment_email_moderator_subject',
+                'type' => Element\Text::class,
+                'options' => [
+                    'element_group' => 'comment',
+                    'label' => 'Moderator notification: subject', // @translate
+                    'info' => 'Placeholders: {site_name}', // @translate
+                ],
+                'attributes' => [
+                    'placeholder' => '[{site_name}] New public comment', // @translate
+                ],
+            ])
+            ->add([
+                'name' => 'comment_email_moderator_body',
+                'type' => Element\Textarea::class,
+                'options' => [
+                    'element_group' => 'comment',
+                    'label' => 'Moderator notification: body', // @translate
+                    'info' => 'Placeholders: {site_name}, {resource_id}, {resource_title}, {resource_url}, {comment_author}, {comment_email}, {comment_body}', // @translate
+                ],
+                'attributes' => [
+                    'rows' => 8,
+                    'placeholder' => <<<'TXT'
+                        A comment was added to resource #{resource_id} ({resource_title}).
+
+                        Author: {comment_author} <{comment_email}>
+
+                        Comment:
+                        {comment_body}
+
+                        Review at: {resource_url}
+                        TXT, // @translate
+                ],
+            ])
+
+            // Email templates for flagged comment notifications.
+            ->add([
+                'name' => 'comment_email_flagged_subject',
+                'type' => Element\Text::class,
+                'options' => [
+                    'element_group' => 'comment',
+                    'label' => 'Flagged comment notification: subject', // @translate
+                    'info' => 'Placeholders: {site_name}', // @translate
+                ],
+                'attributes' => [
+                    'placeholder' => '[{site_name}] Comment flagged for review', // @translate
+                ],
+            ])
+            ->add([
+                'name' => 'comment_email_flagged_body',
+                'type' => Element\Textarea::class,
+                'options' => [
+                    'element_group' => 'comment',
+                    'label' => 'Flagged comment notification: body', // @translate
+                    'info' => 'Placeholders: {site_name}, {resource_id}, {resource_title}, {comment_author}, {comment_email}, {comment_body}, {admin_url}', // @translate
+                ],
+                'attributes' => [
+                    'rows' => 10,
+                    'placeholder' => <<<'TXT'
+                        A comment has been flagged for review.
+
+                        Resource: #{resource_id} ({resource_title})
+                        Author: {comment_author} <{comment_email}>
+
+                        Comment:
+                        {comment_body}
+
+                        Review at: {admin_url}
+                        TXT, // @translate
+                ],
+            ])
+
             ->add([
                 'name' => 'comment_user_allow_edit',
                 'type' => Element\Checkbox::class,
