@@ -3,8 +3,8 @@
 namespace Comment\Api\Adapter;
 
 use Comment\Api\Representation\CommentSubscriptionRepresentation;
-use Comment\Entity\Comment;
 use Comment\Entity\CommentSubscription;
+use Common\Api\Adapter\CommonAdapterTrait;
 use DateTime;
 use Doctrine\ORM\QueryBuilder;
 use Omeka\Api\Adapter\AbstractEntityAdapter;
@@ -15,7 +15,7 @@ use Omeka\Stdlib\ErrorStore;
 
 class CommentSubscriptionAdapter extends AbstractEntityAdapter
 {
-    use QueryBuilderTrait;
+    use CommonAdapterTrait;
 
     protected $sortFields = [
         'id' => 'id',
@@ -39,6 +39,23 @@ class CommentSubscriptionAdapter extends AbstractEntityAdapter
         'created' => 'created',
     ];
 
+    /**
+     * @var array
+     */
+    protected $queryFields = [
+        'id' => [
+            'resource_id' => 'resource',
+            'item_set_id' => 'resource',
+            'item_id' => 'resource',
+            'media_id' => 'resource',
+            'owner_id' => 'owner',
+        ],
+        'datetime' => [
+            'created_before' => ['<', 'created'],
+            'created_after' => ['>', 'created'],
+        ],
+    ];
+
     public function getResourceName()
     {
         return 'comment_subscriptions';
@@ -56,50 +73,8 @@ class CommentSubscriptionAdapter extends AbstractEntityAdapter
 
     public function buildQuery(QueryBuilder $qb, array $query): void
     {
-        $expr = $qb->expr();
-
-        // All comments with any entities ("OR"). If multiple, mixed with "AND".
-        foreach ([
-            'resource_id' => 'resource',
-            'item_set_id' => 'resource',
-            'item_id' => 'resource',
-            'media_id' => 'resource',
-            'owner_id' => 'owner',
-        ] as $queryKey => $column) {
-            if (array_key_exists($queryKey, $query)) {
-                $this->buildQueryIds($qb, $query[$queryKey], $column, 'id');
-            }
-        }
-
-        /** @see \Omeka\Api\Adapter\AbstractResourceEntityAdapter::buildQuery() */
-        $dateSearches = [
-            'created_before' => ['lt', 'created'],
-            'created_after' => ['gt', 'created'],
-        ];
-        $dateGranularities = [
-            DateTime::ISO8601,
-            '!Y-m-d\TH:i:s',
-            '!Y-m-d\TH:i',
-            '!Y-m-d\TH',
-            '!Y-m-d',
-            '!Y-m',
-            '!Y',
-        ];
-        foreach ($dateSearches as $dateSearchKey => $dateSearch) {
-            if (isset($query[$dateSearchKey])) {
-                foreach ($dateGranularities as $dateGranularity) {
-                    $date = DateTime::createFromFormat($dateGranularity, $query[$dateSearchKey]);
-                    if (false !== $date) {
-                        break;
-                    }
-                }
-                $qb->andWhere($expr->{$dateSearch[0]} (
-                sprintf('omeka_root.%s', $dateSearch[1]),
-                    // If the date is invalid, pass null to ensure no results.
-                    $this->createNamedParameter($qb, $date ?: null)
-                ));
-            }
-        }
+        // Handle all fields (id, datetime) via CommonAdapterTrait.
+        $this->buildQueryFields($qb, $query);
     }
 
     public function hydrate(Request $request, EntityInterface $entity,

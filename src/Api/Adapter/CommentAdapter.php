@@ -4,6 +4,7 @@ namespace Comment\Api\Adapter;
 
 use Comment\Api\Representation\CommentRepresentation;
 use Comment\Entity\Comment;
+use Common\Api\Adapter\CommonAdapterTrait;
 use DateTime;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -21,7 +22,7 @@ use Omeka\Stdlib\ErrorStore;
 
 class CommentAdapter extends AbstractEntityAdapter
 {
-    use QueryBuilderTrait;
+    use CommonAdapterTrait;
 
     protected $sortFields = [
         'id' => 'id',
@@ -73,6 +74,37 @@ class CommentAdapter extends AbstractEntityAdapter
         'edited' => 'edited',
     ];
 
+    /**
+     * @var array
+     */
+    protected $queryFields = [
+        'id' => [
+            'id' => 'id',
+            'resource_id' => 'resource',
+            'item_set_id' => 'resource',
+            'item_id' => 'resource',
+            'media_id' => 'resource',
+            'owner_id' => 'owner',
+            'site_id' => 'site',
+        ],
+        'string' => [
+            'path' => 'path',
+            'email' => 'email',
+            'website' => 'website',
+            'name' => 'name',
+            'ip' => 'ip',
+            'user_agent' => 'userAgent',
+        ],
+        'datetime' => [
+            'created_before' => ['<', 'created'],
+            'created_after' => ['>', 'created'],
+            'modified_before' => ['<', 'modified'],
+            'modified_after' => ['>', 'modified'],
+            'edited_before' => ['<', 'edited'],
+            'edited_after' => ['>', 'edited'],
+        ],
+    ];
+
     public function getResourceName()
     {
         return 'comments';
@@ -90,31 +122,11 @@ class CommentAdapter extends AbstractEntityAdapter
 
     public function buildQuery(QueryBuilder $qb, array $query): void
     {
-        // TODO Use CommonAdapterTrait.
-
-        $isOldOmeka = \Omeka\Module::VERSION < 2;
-        $alias = $isOldOmeka ? $this->getEntityClass() : 'omeka_root';
         $expr = $qb->expr();
 
+        // Handle common fields (id, string, datetime) via CommonAdapterTrait.
         // TODO Check resource and owner visibility for public view.
-
-        if (array_key_exists('id', $query)) {
-            $this->buildQueryIdsItself($qb, $query['id'], 'id');
-        }
-
-        // All comments with any entities ("OR"). If multiple, mixed with "AND".
-        foreach ([
-            'resource_id' => 'resource',
-            'item_set_id' => 'resource',
-            'item_id' => 'resource',
-            'media_id' => 'resource',
-            'owner_id' => 'owner',
-            'site_id' => 'site',
-        ] as $queryKey => $column) {
-            if (array_key_exists($queryKey, $query)) {
-                $this->buildQueryIds($qb, $query[$queryKey], $column, 'id');
-            }
-        }
+        $this->buildQueryFields($qb, $query);
 
         // Manage arguments "group" and "collection_id" together.
         // It there are groups and collections, intersect them: "and" is used
@@ -146,7 +158,7 @@ class CommentAdapter extends AbstractEntityAdapter
                             Item::class,
                             $itemAlias,
                             'WITH',
-                            $expr->eq($alias . '.resource', $itemAlias . '.id')
+                            $expr->eq('omeka_root.resource', $itemAlias . '.id')
                         )
                         // Join only item sets that are in the grouped list.
                         ->leftJoin(
@@ -193,7 +205,7 @@ class CommentAdapter extends AbstractEntityAdapter
                     Item::class,
                     $itemAlias,
                     'WITH',
-                    $expr->eq($alias . '.resource', $itemAlias . '.id')
+                    $expr->eq('omeka_root.resource', $itemAlias . '.id')
                 );
 
             if ($values === [0]) {
@@ -238,10 +250,10 @@ class CommentAdapter extends AbstractEntityAdapter
             // An empty string means true in order to manage get/post query.
             if (in_array($query['has_resource'], [false, 'false', 0, '0'], true)) {
                 $qb
-                    ->andWhere($expr->isNull($alias . '.resource'));
+                    ->andWhere($expr->isNull('omeka_root.resource'));
             } else {
                 $qb
-                    ->andWhere($expr->isNotNull($alias . '.resource'));
+                    ->andWhere($expr->isNotNull('omeka_root.resource'));
             }
         }
 
@@ -256,7 +268,7 @@ class CommentAdapter extends AbstractEntityAdapter
             ];
             if ($query['resource_type'] === 'resources') {
                 $qb
-                     ->andWhere($expr->isNotNull($alias . '.resource'));
+                     ->andWhere($expr->isNotNull('omeka_root.resource'));
             } elseif (isset($mapResourceTypes[$query['resource_type']])) {
                 $entityAlias = $this->createAlias();
                 $qb
@@ -265,7 +277,7 @@ class CommentAdapter extends AbstractEntityAdapter
                         $entityAlias,
                         'WITH',
                         $expr->eq(
-                            $alias . '.resource',
+                            'omeka_root.resource',
                             $entityAlias . '.id'
                         )
                     );
@@ -275,21 +287,7 @@ class CommentAdapter extends AbstractEntityAdapter
             }
         }
 
-        foreach ([
-            'path' => 'path',
-            'email' => 'email',
-            'website' => 'website',
-            'name' => 'name',
-            'ip' => 'ip',
-            'user_agent' => 'user_agent',
-        ] as $queryKey => $column) {
-            if (array_key_exists($queryKey, $query) && strlen($query[$queryKey])) {
-                $qb
-                    ->andWhere($expr->eq($alias . '.' . $column, $query[$queryKey]));
-            }
-        }
-
-        // All comments with any entities ("OR"). If multiple, mixed with "AND".
+        // Boolean fields with special empty string handling (empty string = true).
         foreach ([
             'approved' => 'approved',
             'flagged' => 'flagged',
@@ -299,45 +297,11 @@ class CommentAdapter extends AbstractEntityAdapter
                 // An empty string means true in order to manage get/post query.
                 if (in_array($query[$queryKey], [false, 'false', 0, '0'], true)) {
                     $qb
-                        ->andWhere($expr->eq($alias . '.' . $column, 0));
+                        ->andWhere($expr->eq('omeka_root.' . $column, 0));
                 } else {
                     $qb
-                        ->andWhere($expr->eq($alias . '.' . $column, 1));
+                        ->andWhere($expr->eq('omeka_root.' . $column, 1));
                 }
-            }
-        }
-
-        /** @see \Omeka\Api\Adapter\AbstractResourceEntityAdapter::buildQuery() */
-        $dateSearches = [
-            'created_before' => ['lt', 'created'],
-            'created_after' => ['gt', 'created'],
-            'modified_before' => ['lt', 'modified'],
-            'modified_after' => ['gt', 'modified'],
-            'edited_before' => ['lt', 'edited'],
-            'edited_after' => ['gt', 'edited'],
-        ];
-        $dateGranularities = [
-            DateTime::ISO8601,
-            '!Y-m-d\TH:i:s',
-            '!Y-m-d\TH:i',
-            '!Y-m-d\TH',
-            '!Y-m-d',
-            '!Y-m',
-            '!Y',
-        ];
-        foreach ($dateSearches as $dateSearchKey => $dateSearch) {
-            if (isset($query[$dateSearchKey])) {
-                foreach ($dateGranularities as $dateGranularity) {
-                    $date = DateTime::createFromFormat($dateGranularity, $query[$dateSearchKey]);
-                    if (false !== $date) {
-                        break;
-                    }
-                }
-                $qb->andWhere($expr->{$dateSearch[0]} (
-                    sprintf('omeka_root.%s', $dateSearch[1]),
-                    // If the date is invalid, pass null to ensure no results.
-                    $this->createNamedParameter($qb, $date ?: null)
-                ));
             }
         }
     }
