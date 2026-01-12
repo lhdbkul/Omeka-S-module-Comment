@@ -47,41 +47,40 @@ if ($website = $comment->website()) {
 </div>
 <div class="comment-actions">
     <ul class="actions icons-only">
-        <?php // TODO Use buttons instead of a. ?>
         <?php if ($userIsAllowed(\Comment\Controller\Admin\CommentController::class, 'approve')): ?>
-        <li><a href="#"
+        <li><button type="button"
             class="toggle-property approved unapproved o-icon-<?= $comment->isApproved() ? 'approved' : 'unapproved' ?>"
             data-url="<?= $escape($comment->url('toggle-approved')) ?>"
             data-status="<?= $comment->isApproved() ? 'approved' : 'unapproved' ?>"
             aria-label="<?= $v = $escape($translate('Toggle approbation')) ?>"
-            title="<?= $v ?>"></a></li>
+            title="<?= $v ?>"></button></li>
         <?php endif; ?>
         <?php if ($userIsAllowed(\Comment\Controller\Admin\CommentController::class, 'flag')
             || ($comment->isFlagged() && $userIsAllowed(\Comment\Controller\Admin\CommentController::class, 'unflag'))):
         ?>
-        <li><a href="#"
+        <li><button type="button"
             class="toggle-property flagged unflagged o-icon-<?= $comment->isFlagged() ? 'flagged' : 'unflagged' ?>"
             data-url="<?= $escape($comment->url('toggle-flagged')) ?>"
             data-status="<?= $comment->isFlagged() ? 'flagged' : 'unflagged' ?>"
             aria-label="<?= $v = $escape($translate('Toggle flag')) ?>"
-            title="<?= $v ?>"></a></li>
+            title="<?= $v ?>"></button></li>
         <?php endif; ?>
         <?php if ($userIsAllowed(\Comment\Controller\Admin\CommentController::class, 'set-spam')
             || $userIsAllowed(\Comment\Controller\Admin\CommentController::class, 'set-not-spam')):
         ?>
-        <li><a href="#"
+        <li><button type="button"
             class="toggle-property spam not-spam o-icon-<?= $comment->isSpam() ? 'spam' : 'not-spam' ?>"
             data-url="<?= $escape($comment->url('toggle-spam')) ?>"
             data-status="<?= $comment->isSpam() ? 'spam' : 'not-spam' ?>"
             aria-label="<?= $v = $escape($translate('Toggle spam')) ?>"
-            title="<?= $v ?>"></a></li>
+            title="<?= $v ?>"></button></li>
         <?php endif; ?>
         <?php if ($comment->userIsAllowed('edit')): ?>
-        <li><a href="#"
-            class="o-icon-edit' ?>"
+        <li><button type="button"
+            class="o-icon-edit"
             data-url="<?= $escape($comment->url('edit')) ?>"
             aria-label="<?= $v = $escape($translate('Edit')) ?>"
-            title="<?= $v ?>"></a></li>
+            title="<?= $v ?>"></button></li>
         <?php endif; ?>
         <?php /* // TODO Delete comments from resources.
         <?php if ($userIsAllowed(\Comment\Controller\Admin\CommentController::class, 'delete')): ?>

@@ -45,7 +45,8 @@
     .comment .single.actions {
         float: right;
     }
-    .comment .single.actions a::before {
+    .comment .single.actions a::before,
+    .comment .single.actions button::before {
         text-align: inherit;
     }
     .comment .o-icon-users,
@@ -136,7 +137,8 @@
         content: "";
     }
 
-    .comment .icons-only a .spinner {
+    .comment .icons-only a .spinner,
+    .comment .icons-only button .spinner {
         margin-left: 0.5em;
     }
 }

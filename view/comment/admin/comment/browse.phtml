@@ -71,49 +71,49 @@ $editRight = $userIsAllowed(CommentAdapter::class, 'update')
 <?php if ($comments): ?>
 <div id="page-actions">
     <?php if ($userIsAllowed(CommentAdapter::class, 'batch-update')): ?>
-    <a href="#"
+    <button type="button"
         class="button batch-actions batch-property"
         data-batch-property-url="<?= $escapeAttr($url(null, ['action' => 'batch-approve'], true)) ?>"
         aria-label="<?= $escapeAttr($translate('Approve')) ?>"
         data-status="approved"
-        title="<?= $escapeAttr($translate('Approve')) ?>"><?= $escape($translate('Approve')) ?></a>
-    <a href="#"
+        title="<?= $escapeAttr($translate('Approve')) ?>"><?= $escape($translate('Approve')) ?></button>
+    <button type="button"
         class="button batch-actions batch-property"
         data-batch-property-url="<?= $escapeAttr($url(null, ['action' => 'batch-unapprove'], true)) ?>"
         aria-label="<?= $escapeAttr($translate('Unapprove')) ?>"
         data-status="unapproved"
-        title="<?= $escapeAttr($translate('Unapprove')) ?>"><?= $escape($translate('Unapprove')) ?></a>
-    <a href="#"
+        title="<?= $escapeAttr($translate('Unapprove')) ?>"><?= $escape($translate('Unapprove')) ?></button>
+    <button type="button"
         class="button batch-actions batch-property"
         data-batch-property-url="<?= $escapeAttr($url(null, ['action' => 'batch-flag'], true)) ?>"
         aria-label="<?= $escapeAttr($translate('Flag')) ?>"
         data-status="flagged"
-        title="<?= $escapeAttr($translate('Flag')) ?>"><?= $escape($translate('Flag')) ?></a>
-    <a href="#"
+        title="<?= $escapeAttr($translate('Flag')) ?>"><?= $escape($translate('Flag')) ?></button>
+    <button type="button"
         class="button batch-actions batch-property"
         data-batch-property-url="<?= $escapeAttr($url(null, ['action' => 'batch-unflag'], true)) ?>"
         aria-label="<?= $escapeAttr($translate('Unflag')) ?>"
         data-status="unflagged"
-        title="<?= $escapeAttr($translate('Unflag')) ?>"><?= $escape($translate('Unflag')) ?></a>
-    <a href="#"
+        title="<?= $escapeAttr($translate('Unflag')) ?>"><?= $escape($translate('Unflag')) ?></button>
+    <button type="button"
         class="button batch-actions batch-property"
         data-batch-property-url="<?= $escapeAttr($url(null, ['action' => 'batch-set-spam'], true)) ?>"
         aria-label="<?= $escapeAttr($translate('Set spam')) ?>"
         data-status="spam"
-        title="<?= $escapeAttr($translate('Set spam')) ?>"><?= $escape($translate('Set spam')) ?></a>
-    <a href="#"
+        title="<?= $escapeAttr($translate('Set spam')) ?>"><?= $escape($translate('Set spam')) ?></button>
+    <button type="button"
         class="button batch-actions batch-property"
         data-batch-property-url="<?= $escapeAttr($url(null, ['action' => 'batch-set-not-spam'], true)) ?>"
         aria-label="<?= $escapeAttr($translate('Set not spam')) ?>"
         data-status="not-spam"
-        title="<?= $escapeAttr($translate('Set not spam')) ?>"><?= $escape($translate('Set not spam')) ?></a>
+        title="<?= $escapeAttr($translate('Set not spam')) ?>"><?= $escape($translate('Set not spam')) ?></button>
     <?php endif; ?>
     <?php if ($userIsAllowed(CommentAdapter::class, 'batch-delete')): ?>
-    <a href="#"
+    <button type="button"
         class="button delete batch-actions sidebar-content"
         data-sidebar-content-url="<?= $escapeAttr($url(null, ['action' => 'batch-delete-confirm'], true)) ?>"
         aria-label="<?= $escapeAttr($translate('Delete')) ?>"
-        title="<?= $escapeAttr($translate('Delete')) ?>"><?= $escape($translate('Delete')) ?></a>
+        title="<?= $escapeAttr($translate('Delete')) ?>"><?= $escape($translate('Delete')) ?></button>
     <?php endif; ?>
 </div>
 <?php endif; ?>
@@ -157,46 +157,45 @@ $editRight = $userIsAllowed(CommentAdapter::class, 'update')
                 <span class="is-public-or-not<?php if (!$comment->isApproved()): echo ' o-icon-private'; endif; ?>" aria-label="<?= $translate('Private') ?>"></span>
                 <?php if (mb_strlen($comment->body()) > 200): echo '…'; endif; ?>
                 <ul class="actions icons-only">
-                <?php // TODO Use buttons instead of a. ?>
                 <?php $editRightComment = $comment->userIsAllowed('update'); ?>
                     <?php if ($editRightComment): ?>
-                    <li><a href="#"
+                    <li><button type="button"
                         class="toggle-property approved unapproved o-icon-<?= $comment->isApproved() ? 'approved' : 'unapproved' ?>"
                         data-url="<?= $escapeAttr($comment->url('toggle-approved')) ?>"
                         data-status="<?= $comment->isApproved() ? 'approved' : 'unapproved' ?>"
                         aria-label="<?= $v = $escape($translate('Toggle approbation')) ?>"
-                        title="<?= $v ?>"></a></li>
-                    <li><a href="#"
+                        title="<?= $v ?>"></button></li>
+                    <li><button type="button"
                         class="toggle-property flagged unflagged o-icon-<?= $comment->isFlagged() ? 'flagged' : 'unflagged' ?>"
                         data-url="<?= $escapeAttr($comment->url('toggle-flagged')) ?>"
                         data-status="<?= $comment->isFlagged() ? 'flagged' : 'unflagged' ?>"
                         aria-label="<?= $v = $escapeAttr($translate('Toggle flag')) ?>"
-                        title="<?= $v ?>"></a></li>
-                    <li><a href="#"
+                        title="<?= $v ?>"></button></li>
+                    <li><button type="button"
                         class="toggle-property spam not-spam o-icon-<?= $comment->isSpam() ? 'spam' : 'not-spam' ?>"
                         data-url="<?= $escapeAttr($comment->url('toggle-spam')) ?>"
                         data-status="<?= $comment->isSpam() ? 'spam' : 'not-spam' ?>"
                         aria-label="<?= $v = $escape($translate('Toggle spam')) ?>"
-                        title="<?= $v ?>"></a></li>
+                        title="<?= $v ?>"></button></li>
                     <?php endif; ?>
                     <?php if ($comment->userIsAllowed('edit')): ?>
-                    <li><a href="#"
+                    <li><button type="button"
                         class="comment-edit o-icon-edit"
                         aria-label="<?= $v = $escape($translate('Edit')) ?>"
-                        title="<?= $v ?>"></a></li>
+                        title="<?= $v ?>"></button></li>
                     <?php endif; ?>
                     <?php if ($comment->userIsAllowed('delete')): ?>
-                    <li><a href="#"
+                    <li><button type="button"
                         class="o-icon-delete sidebar-content"
                         data-sidebar-content-url="<?= $escapeAttr($comment->url('delete-confirm')) ?>"
                         aria-label="<?= $v = $escape($translate('Delete')) ?>"
-                        title="<?= $v ?>"></a></li>
+                        title="<?= $v ?>"></button></li>
                     <?php endif; ?>
-                    <li><a href="#"
+                    <li><button type="button"
                         data-sidebar-content-url="<?= $escapeAttr($comment->url('show-details')) ?>"
                         class="o-icon-more sidebar-content"
                         aria-label="<?= $v = $escape($translate('Details')) ?>"
-                        title="<?= $v ?>"></a></li>
+                        title="<?= $v ?>"></button></li>
                 </ul>
             </td>
             <td>
@@ -252,10 +251,10 @@ $editRight = $userIsAllowed(CommentAdapter::class, 'update')
 </div>
 
 <div class="sidebar">
-    <a href="#"
+    <button type="button"
         class="sidebar-close o-icon-close"
         aria-label="<?= $v = $escapeAttr($translate('Close')) ?>"
-        title="<?= $v ?>"></a>
+        title="<?= $v ?>"></button>
     <div class="sidebar-content"></div>
 </div>
 
