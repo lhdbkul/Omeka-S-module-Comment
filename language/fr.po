@@ -252,7 +252,7 @@ msgstr "S’abonner aux commentaires"
 
 #: view/common/comment-subscription-button.phtml:34
 msgid "Log in to subscribe to comments"
-msgstr "Se connecter pour pour s’abonner aux commentaires"
+msgstr "Se connecter pour s’abonner aux commentaires"
 
 #: view/common/comments.phtml:44
 msgid "No comment yet! Log in and be the first to add one!"
