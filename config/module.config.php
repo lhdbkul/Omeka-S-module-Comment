@@ -32,6 +32,7 @@ return [
         'invokables' => [
             'comments' => View\Helper\Comments::class,
             'commentSubscriptionButton' => View\Helper\CommentSubscriptionButton::class,
+            'commentIsSubscribed' => View\Helper\CommentIsSubscribed::class,
         ],
         'factories' => [
             'commentForm' => Service\ViewHelper\CommentFormFactory::class,
