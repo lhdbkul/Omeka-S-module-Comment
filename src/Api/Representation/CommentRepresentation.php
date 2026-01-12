@@ -10,6 +10,16 @@ use Omeka\Api\Representation\UserRepresentation;
 
 class CommentRepresentation extends AbstractEntityRepresentation
 {
+    /**
+     * Roles that can view sensitive comment data (email, IP, user agent).
+     */
+    protected $moderatorRoles = [
+        \Omeka\Permissions\Acl::ROLE_GLOBAL_ADMIN,
+        \Omeka\Permissions\Acl::ROLE_SITE_ADMIN,
+        \Omeka\Permissions\Acl::ROLE_EDITOR,
+        \Omeka\Permissions\Acl::ROLE_REVIEWER,
+    ];
+
     public function getControllerName()
     {
         return 'comment';
@@ -46,8 +56,10 @@ class CommentRepresentation extends AbstractEntityRepresentation
 
         // TODO Describe parameters of the comment (@id, not only o:id, etc.)?
 
-        // TODO Enable author email, ip and user agent according to rights.
-        return [
+        // Include sensitive data only for authorized users.
+        $canViewSensitiveData = $this->canViewSensitiveData();
+
+        $data = [
             'o:id' => $this->id(),
             'o:owner' => $owner ? $owner->getReference()->jsonSerialize() : null,
             'o:resource' => $resource ? $resource->getReference()->jsonSerialize() : null,
@@ -56,11 +68,8 @@ class CommentRepresentation extends AbstractEntityRepresentation
             'o:flagged' => $this->isFlagged(),
             'o:spam' => $this->isSpam(),
             'o:path' => $this->path(),
-            // 'o:email' => $this->email(),
             'o:name' => $this->name(),
             'o:website' => $this->website(),
-            // 'o:ip' => $this->ip(),
-            // 'o:user_agent' => $this->userAgent(),
             'o:body' => $this->body(),
             'o:parent' => $parent ? $parent->getReference()->jsonSerialize() : null,
             'o:children' => $children,
@@ -68,6 +77,15 @@ class CommentRepresentation extends AbstractEntityRepresentation
             'o:modified' => $getDateTimeJsonLd($this->resource->getModified()),
             'o:history' => $this->history(),
         ];
+
+        // Add sensitive data for authorized users only.
+        if ($canViewSensitiveData) {
+            $data['o:email'] = $this->email();
+            $data['o:ip'] = $this->ip();
+            $data['o:user_agent'] = $this->userAgent();
+        }
+
+        return $data;
     }
 
     /**
@@ -187,11 +205,39 @@ class CommentRepresentation extends AbstractEntityRepresentation
 
     /**
      * Get the history of changes for this comment.
-     *
-     * @return array|null
      */
     public function history(): ?array
     {
         return $this->resource->getHistory();
+    }
+
+    /**
+     * Check if current user can view sensitive data (email, IP, user agent).
+     *
+     * Sensitive data is visible to:
+     * - Moderators (global admin, site admin, editor, reviewer);
+     * - The comment owner (can see their own email).
+     */
+    public function canViewSensitiveData(): bool
+    {
+        $services = $this->getServiceLocator();
+        $identity = $services->get('Omeka\AuthenticationService')->getIdentity();
+
+        if (!$identity) {
+            return false;
+        }
+
+        // Moderators can see all sensitive data.
+        if (in_array($identity->getRole(), $this->moderatorRoles, true)) {
+            return true;
+        }
+
+        // Comment owner can see their own data.
+        $owner = $this->resource->getOwner();
+        if ($owner && $owner->getId() === $identity->getId()) {
+            return true;
+        }
+
+        return false;
     }
 }
