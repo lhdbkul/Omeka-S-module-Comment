@@ -365,6 +365,12 @@ class CommentAdapter extends AbstractEntityAdapter
         if (!is_string($body) || $body === '') {
             $errorStore->addError('o:body', 'The body cannot be empty.'); // @translate
         }
+
+        // Prevent replying to unapproved comments.
+        $parent = $entity->getParent();
+        if ($parent && !$parent->isApproved()) {
+            $errorStore->addError('o:parent', 'Cannot reply to a comment that is not yet approved.'); // @translate
+        }
     }
 
     public function preprocessBatchUpdate(array $data, Request $request)

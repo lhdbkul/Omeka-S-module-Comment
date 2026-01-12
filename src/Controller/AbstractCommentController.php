@@ -114,7 +114,14 @@ abstract class AbstractCommentController extends AbstractActionController
                 ));
             } catch (\Exception $e) {
                 return $this->jSend()->error(null, new PsrMessage(
-                    'The parent comment doesn’t exist.' // @translate
+                    'The parent comment does not exist.' // @translate
+                ));
+            }
+
+            // Prevent replying to unapproved comments.
+            if (!$parent->isApproved()) {
+                return $this->jSend()->fail(null, new PsrMessage(
+                    'Cannot reply to a comment that is not yet approved.' // @translate
                 ));
             }
         }
@@ -232,7 +239,6 @@ abstract class AbstractCommentController extends AbstractActionController
         }
 
         $toModerate = !$data['o:approved'] || $data['o:spam'];
-        $toModerate = $toModerate || ($parent && !$parent->isApproved());
         if ($toModerate) {
             return $this->jSend()->success([
                 'comment' => $comment->jsonSerialize(),
