@@ -119,6 +119,7 @@ class CommentAdapter extends AbstractEntityAdapter
         // Manage arguments "group" and "collection_id" together.
         // It there are groups and collections, intersect them: "and" is used
         // between arguments.
+        // Warning: the group "none" means to get all comments without group.
         if (array_key_exists('collection_id', $query) && !in_array($query['collection_id'], [null, '', []], true)) {
             $collectionIds = is_array($query['collection_id'])
                 ? array_values(array_unique(array_map('intval', $query['collection_id'])))
@@ -132,17 +133,45 @@ class CommentAdapter extends AbstractEntityAdapter
                 ? array_values(array_unique(array_map('string', $query['group'])))
                 : [(string) $query['group']];
             $groups = $this->getServiceLocator()->get('Omeka\Settings')->get('comment_groups');
-            $groupItemSets = array_intersect_key($groups, array_flip($values));
-            $groupItemSets = $groupItemSets ? array_unique(array_merge(...array_values($groupItemSets))) : [];
-            if (!$groupItemSets) {
-                $qb->andWhere($expr->isNull('omeka_root.id'));
+            if (in_array('none', $values)) {
+                // Exclude comments whose item belongs to any group item sets.
+                $groupItemSets = array_unique(array_merge(...array_values($groups)));
+                if ($groupItemSets) {
+                    $itemAlias = $this->createAlias();
+                    $itemSetAlias = $this->createAlias();
+                    $paramAlias = $this->createAlias();
+                    $qb
+                        // Join items (may be null for comments on other types).
+                        ->leftJoin(
+                            Item::class,
+                            $itemAlias,
+                            'WITH',
+                            $expr->eq($alias . '.resource', $itemAlias . '.id')
+                        )
+                        // Join only item sets that are in the grouped list.
+                        ->leftJoin(
+                            $itemAlias . '.itemSets',
+                            $itemSetAlias,
+                            'WITH',
+                            $expr->in($itemSetAlias . '.id', ':' . $paramAlias)
+                        )
+                        // Keep comments where no grouped item set matched.
+                        ->andWhere($expr->isNull($itemSetAlias . '.id'))
+                        ->setParameter($paramAlias, $groupItemSets, Connection::PARAM_INT_ARRAY);
+                }
             } else {
-                // Intersect with collection ids if any and continue below.
-                $collectionIds = $collectionIds
-                    ? array_intersect($collectionIds, $groupItemSets)
-                    : $groupItemSets;
-                if (!$collectionIds) {
+                $groupItemSets = array_intersect_key($groups, array_flip($values));
+                $groupItemSets = $groupItemSets ? array_unique(array_merge(...array_values($groupItemSets))) : [];
+                if (!$groupItemSets) {
                     $qb->andWhere($expr->isNull('omeka_root.id'));
+                } else {
+                    // Intersect with collection ids if any and continue below.
+                    $collectionIds = $collectionIds
+                        ? array_intersect($collectionIds, $groupItemSets)
+                        : $groupItemSets;
+                    if (!$collectionIds) {
+                        $qb->andWhere($expr->isNull('omeka_root.id'));
+                    }
                 }
             }
         }
