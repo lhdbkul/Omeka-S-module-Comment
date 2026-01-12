@@ -11,8 +11,6 @@ use Omeka\Entity\Site;
 use Omeka\Entity\User;
 
 /**
- * @todo Add a json "history" with date and action (creation, is flag, previous comments, edit, etc.).
- *
  * @todo In the case of new objects to comment, use resource by id + type.
  * @todo For pages, create a resource class "Page"!
  * @todo Check if columns for author can be merged into an array.
@@ -238,14 +236,16 @@ class Comment extends AbstractEntity
     protected $modified;
 
     /**
-     * @var DateTime|null
+     * History of changes (edits, flags, approvals, etc.).
+     *
+     * @var array|null
      *
      * @Column(
-     *     type="datetime",
+     *     type="json",
      *     nullable=true
      * )
      */
-    protected $edited;
+    protected $history;
 
     public function __construct()
     {
@@ -438,14 +438,34 @@ class Comment extends AbstractEntity
         return $this->modified;
     }
 
-    public function setEdited(?DateTime $edited): self
+    public function setHistory(?array $history): self
     {
-        $this->edited = $edited;
+        $this->history = $history;
         return $this;
     }
 
-    public function getEdited(): ?DateTime
+    public function getHistory(): ?array
     {
-        return $this->edited;
+        return $this->history;
+    }
+
+    /**
+     * Add an entry to the history.
+     *
+     * @param string $action The action type (edit, flag, unflag, approve, unapprove, spam, unspam).
+     * @param array $data Additional data to store (e.g., previous body for edits).
+     * @param int|null $userId The user who performed the action.
+     */
+    public function addHistoryEntry(string $action, array $data = [], ?int $userId = null): self
+    {
+        $history = $this->history ?? [];
+        $history[] = [
+            'action' => $action,
+            'date' => (new DateTime('now'))->format('c'),
+            'user_id' => $userId,
+            'data' => $data ?: null,
+        ];
+        $this->history = $history;
+        return $this;
     }
 }

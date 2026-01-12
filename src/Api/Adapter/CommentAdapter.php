@@ -44,7 +44,6 @@ class CommentAdapter extends AbstractEntityAdapter
         'parent_id' => 'parent',
         'created' => 'created',
         'modified' => 'modified',
-        'edited' => 'edited',
         // For info.
         // // 'resource_title' => 'resource',
     ];
@@ -71,7 +70,6 @@ class CommentAdapter extends AbstractEntityAdapter
         'children' => 'children',
         'created' => 'created',
         'modified' => 'modified',
-        'edited' => 'edited',
     ];
 
     /**
@@ -100,8 +98,6 @@ class CommentAdapter extends AbstractEntityAdapter
             'created_after' => ['>', 'created'],
             'modified_before' => ['<', 'modified'],
             'modified_after' => ['>', 'modified'],
-            'edited_before' => ['<', 'edited'],
-            'edited_after' => ['>', 'edited'],
         ],
     ];
 
@@ -386,28 +382,50 @@ class CommentAdapter extends AbstractEntityAdapter
                 break;
 
             case Request::UPDATE:
+                // Get current user for history tracking.
+                $identity = $this->getServiceLocator()->get('Omeka\AuthenticationService')->getIdentity();
+                $userId = $identity ? $identity->getId() : null;
+
+                // Track body changes.
                 if ($this->shouldHydrate($request, 'o:body')) {
-                    $entity->setBody($request->getValue('o:body', ''));
+                    $newBody = $request->getValue('o:body', '');
+                    $oldBody = $entity->getBody();
+                    if ($newBody !== $oldBody) {
+                        $entity->addHistoryEntry('edit', ['previous_body' => $oldBody], $userId);
+                    }
+                    $entity->setBody($newBody);
                 }
 
-                if ($this->shouldHydrate($request, 'o:edited')) {
-                    $edited = $request->getValue('o:edited') ?: null;
-                    if ($edited && is_string($edited)) {
-                        $edited = new DateTime($edited);
-                    }
-                    $entity->setEdited($edited);
-                }
                 break;
         }
 
+        // Track status changes (for both create and update).
+        $identity = $this->getServiceLocator()->get('Omeka\AuthenticationService')->getIdentity();
+        $userId = $identity ? $identity->getId() : null;
+
         if ($this->shouldHydrate($request, 'o:approved')) {
-            $entity->setApproved($request->getValue('o:approved', false));
+            $newApproved = (bool) $request->getValue('o:approved', false);
+            $oldApproved = $entity->isApproved();
+            if ($request->getOperation() === Request::UPDATE && $newApproved !== $oldApproved) {
+                $entity->addHistoryEntry($newApproved ? 'approve' : 'unapprove', [], $userId);
+            }
+            $entity->setApproved($newApproved);
         }
         if ($this->shouldHydrate($request, 'o:flagged')) {
-            $entity->setFlagged($request->getValue('o:flagged', false));
+            $newFlagged = (bool) $request->getValue('o:flagged', false);
+            $oldFlagged = $entity->isFlagged();
+            if ($request->getOperation() === Request::UPDATE && $newFlagged !== $oldFlagged) {
+                $entity->addHistoryEntry($newFlagged ? 'flag' : 'unflag', [], $userId);
+            }
+            $entity->setFlagged($newFlagged);
         }
         if ($this->shouldHydrate($request, 'o:spam')) {
-            $entity->setSpam($request->getValue('o:spam', false));
+            $newSpam = (bool) $request->getValue('o:spam', false);
+            $oldSpam = $entity->isSpam();
+            if ($request->getOperation() === Request::UPDATE && $newSpam !== $oldSpam) {
+                $entity->addHistoryEntry($newSpam ? 'spam' : 'unspam', [], $userId);
+            }
+            $entity->setSpam($newSpam);
         }
 
         $this->updateTimestamps($request, $entity);

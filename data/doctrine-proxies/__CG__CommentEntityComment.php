@@ -67,10 +67,10 @@ class Comment extends \Comment\Entity\Comment implements \Doctrine\ORM\Proxy\Pro
     public function __sleep()
     {
         if ($this->__isInitialized__) {
-            return ['__isInitialized__', 'id', 'owner', 'resource', 'site', 'approved', 'flagged', 'spam', 'path', 'email', 'name', 'website', 'ip', 'userAgent', 'body', 'parent', 'children', 'created', 'modified', 'edited'];
+            return ['__isInitialized__', 'id', 'owner', 'resource', 'site', 'approved', 'flagged', 'spam', 'path', 'email', 'name', 'website', 'ip', 'userAgent', 'body', 'parent', 'children', 'created', 'modified', 'history'];
         }
 
-        return ['__isInitialized__', 'id', 'owner', 'resource', 'site', 'approved', 'flagged', 'spam', 'path', 'email', 'name', 'website', 'ip', 'userAgent', 'body', 'parent', 'children', 'created', 'modified', 'edited'];
+        return ['__isInitialized__', 'id', 'owner', 'resource', 'site', 'approved', 'flagged', 'spam', 'path', 'email', 'name', 'website', 'ip', 'userAgent', 'body', 'parent', 'children', 'created', 'modified', 'history'];
     }
 
     /**
@@ -133,7 +133,7 @@ class Comment extends \Comment\Entity\Comment implements \Doctrine\ORM\Proxy\Pro
      * {@inheritDoc}
      * @internal generated method: use only when explicitly handling proxy specific loading logic
      */
-    public function __setInitializer(\Closure $initializer = null): void
+    public function __setInitializer(?\Closure $initializer = null): void
     {
         $this->__initializer__ = $initializer;
     }
@@ -151,7 +151,7 @@ class Comment extends \Comment\Entity\Comment implements \Doctrine\ORM\Proxy\Pro
      * {@inheritDoc}
      * @internal generated method: use only when explicitly handling proxy specific loading logic
      */
-    public function __setCloner(\Closure $cloner = null): void
+    public function __setCloner(?\Closure $cloner = null): void
     {
         $this->__cloner__ = $cloner;
     }
@@ -558,23 +558,34 @@ class Comment extends \Comment\Entity\Comment implements \Doctrine\ORM\Proxy\Pro
     /**
      * {@inheritDoc}
      */
-    public function setEdited(?\DateTime $edited): \Comment\Entity\Comment
+    public function setHistory(?array $history): \Comment\Entity\Comment
     {
 
-        $this->__initializer__ && $this->__initializer__->__invoke($this, 'setEdited', [$edited]);
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'setHistory', [$history]);
 
-        return parent::setEdited($edited);
+        return parent::setHistory($history);
     }
 
     /**
      * {@inheritDoc}
      */
-    public function getEdited(): ?\DateTime
+    public function getHistory(): ?array
     {
 
-        $this->__initializer__ && $this->__initializer__->__invoke($this, 'getEdited', []);
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'getHistory', []);
 
-        return parent::getEdited();
+        return parent::getHistory();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function addHistoryEntry(string $action, array $data = [], ?int $userId = NULL): \Comment\Entity\Comment
+    {
+
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'addHistoryEntry', [$action, $data, $userId]);
+
+        return parent::addHistoryEntry($action, $data, $userId);
     }
 
     /**

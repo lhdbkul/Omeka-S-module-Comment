@@ -347,7 +347,6 @@ abstract class AbstractCommentController extends AbstractActionController
         $role = $user->getRole();
         $data['o:approved'] = in_array($role, $this->approbators)
             || !$this->settings()->get('comment_user_require_moderation');
-        $data['o:edited'] = new \DateTime('now');
 
         // Save the new body.
         try {

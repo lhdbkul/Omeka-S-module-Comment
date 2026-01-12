@@ -210,9 +210,14 @@ $editRight = $userIsAllowed(CommentAdapter::class, 'update')
                 <br/>
                 <?= $escape(sprintf($translate('Modified: %s'), $i18n->dateFormat($v))) ?>
                 <?php endif; ?>
-                <?php if ($v = $comment->edited()): ?>
+                <?php
+                // Get last edit date from history.
+                $history = $comment->history();
+                $edits = $history ? array_filter($history, fn($h) => ($h['action'] ?? '') === 'edit') : [];
+                $lastEdit = $edits ? end($edits) : null;
+                if ($lastEdit): ?>
                 <br/>
-                <?= $escape(sprintf($translate('Edited: %s'), $i18n->dateFormat($v))) ?>
+                <?= $escape(sprintf($translate('Edited: %s'), $i18n->dateFormat(new DateTime($lastEdit['date'])))) ?>
                 <?php endif; ?>
             </td>
         </tr>
