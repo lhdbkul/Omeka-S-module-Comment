@@ -783,7 +783,7 @@ class Module extends AbstractModule
         $resource = $view->vars()->resource;
         if ($this->isCommentEnabledForResource($resource, true)) {
             echo '<div id="comments" class="section">';
-            echo $view->comments($resource, ['template' => 'common/admin/comments']);
+            echo $view->commentsResource($resource, ['template' => 'common/admin/comments']);
             echo $view->commentForm($resource);
             echo '</div>';
         }

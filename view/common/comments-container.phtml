@@ -25,7 +25,7 @@ if (empty($showSubscription) && empty($showList) && empty($showForm) ) {
     <?= $this->commentSubscriptionButton($resource, $options ?? []) ?>
     <?php endif; ?>
     <?php if ($showList): ?>
-    <?= $this->comments($resource, $options ?? []) ?>
+    <?= $this->commentsResource($resource, $options ?? []) ?>
     <?php endif; ?>
     <?php if ($showForm): ?>
     <?= $this->commentForm($resource, $options ?? []) ?>

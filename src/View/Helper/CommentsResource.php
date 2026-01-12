@@ -5,7 +5,7 @@ namespace Comment\View\Helper;
 use Laminas\View\Helper\AbstractHelper;
 use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
 
-class Comments extends AbstractHelper
+class CommentsResource extends AbstractHelper
 {
     /**
      * The default partial view script.

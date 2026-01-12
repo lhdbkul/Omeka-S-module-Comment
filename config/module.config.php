@@ -30,7 +30,7 @@ return [
     ],
     'view_helpers' => [
         'invokables' => [
-            'comments' => View\Helper\Comments::class,
+            'commentsResource' => View\Helper\CommentsResource::class,
             'commentSubscriptionButton' => View\Helper\CommentSubscriptionButton::class,
             'commentIsSubscribed' => View\Helper\CommentIsSubscribed::class,
         ],
