@@ -4,7 +4,6 @@ namespace Comment\Controller\Admin;
 
 use Comment\Api\Representation\CommentRepresentation;
 use Comment\Controller\AbstractCommentController;
-use Common\Mvc\Controller\Plugin\JSend;
 use Common\Stdlib\PsrMessage;
 use Laminas\View\Model\ViewModel;
 use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
@@ -183,9 +182,9 @@ class CommentController extends AbstractCommentController
         // Secure the input.
         $resourceIds = array_values(array_unique(array_filter(array_map('intval', $resourceIds))));
         if (empty($resourceIds)) {
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            return $this->jSend()->fail(null, new PsrMessage(
                 'No comments submitted.' // @translate
-            ))->setTranslator($this->translator()));
+            ));
         }
 
         try {
@@ -196,9 +195,9 @@ class CommentController extends AbstractCommentController
                 '[Comment]: {msg}', // @translate
                 ['msg' => $e->getMessage()]
             );
-            return $this->jSend(JSend::ERROR, null, (new PsrMessage(
+            return $this->jSend()->error(null, new PsrMessage(
                 'An internal error occurred.' // @translate
-            ))->setTranslator($this->translator()));
+            ));
         }
 
         $value = reset($data);
@@ -210,8 +209,8 @@ class CommentController extends AbstractCommentController
             'o:spam' => ['not-spam', 'spam'],
         ];
 
-        // TODO According to jsend, output the list of comments and the propety for each? Probably useless.
-        return $this->jSend(JSend::SUCCESS, [
+        // TODO According to jSend, output the list of comments and the propety for each? Probably useless.
+        return $this->jSend()->success([
             'ids' => $resourceIds,
             'property' => $property,
             'value' => $value,
@@ -263,7 +262,7 @@ class CommentController extends AbstractCommentController
                 '[Comment]: {msg}', // @translate
                 ['msg' => $e->getMessage()]
             );
-            return $this->jSend(JSend::ERROR, null, $this->translate(
+            return $this->jSend()->error(null, $this->translate(
                 'An internal error occurred.' // @translate
             ));
         }
@@ -274,7 +273,7 @@ class CommentController extends AbstractCommentController
             'o:spam' => ['not-spam', 'spam'],
         ];
 
-        return $this->jSend(JSend::SUCCESS, [
+        return $this->jSend()->success([
             'property' => $property,
             'value' => $value,
             'status' => $statuses[$property][(int) $value],

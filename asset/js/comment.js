@@ -49,7 +49,7 @@ var Comment = {
         CommonDialog.jSend({
             preventDefault: function() {},
             target: form[0],
-            submitter: button[0]
+            submitter: button[0],
         });
     },
 
@@ -122,22 +122,24 @@ var Comment = {
     },
 
     flagResponseHandler: function(response, status, jqxhr) {
-        if (!response || !response.status || !response.data) {
+        if (!response || !response.data || !response.data.status || !response.data.data || !response.data.data.status) {
             return;
         }
-        var comment = $('#comment-' + response.data['o:id']);
-        if (response.data.status === 'commented') {
+        if (response.data.data.status === 'commented') {
             location.reload();
-        } else if (response.data.status === 'flagged') {
+        } else if (response.data.data.status === 'flagged') {
+            const comment = $('#comment-' + response.data.data.comment['o:id']);
             comment.find('.comment-body').first().addClass('comment-flagged');
             comment.find('.comment-flag').first().hide();
             comment.find('.comment-unflag').first().show();
-        } else if (response.data.status == 'unflagged') {
+        } else if (response.data.data.status == 'unflagged') {
+            const comment = $('#comment-' + response.data.data.comment['o:id']);
             comment.find('.comment-body').first().removeClass('comment-flagged');
             comment.find('.comment-flag').first().show();
             comment.find('.comment-unflag').first().hide();
-        } else if (response.data.status === 'subscribed') {
-            $('.comment-subscribe[data-id="' + response.data['o:resource']['o:id'] + '"]').each(function() {
+        } else if (response.data.data.status === 'subscribed') {
+            const resourceId = response.data.data.comment_subscription['o:resource']['o:id'];
+            $('.comment-subscribe[data-id="' + resourceId + '"]').each(function() {
                 $(this)
                     .removeClass('unsubscribed')
                     .addClass('subscribed');
@@ -147,8 +149,9 @@ var Comment = {
                     textSpan.text(this.dataset.titleSubscribed);
                 }
             });
-        } else if (response.data.status === 'unsubscribed') {
-            $('.comment-subscribe[data-id="' + response.data['o:resource']['o:id'] + '"]').each(function() {
+        } else if (response.data.data.status === 'unsubscribed') {
+            const resourceId = response.data.data.comment_subscription['o:resource']['o:id'];
+            $('.comment-subscribe[data-id="' + resourceId + '"]').each(function() {
                   $(this)
                       .removeClass('subscribed')
                       .addClass('unsubscribed');
@@ -159,7 +162,7 @@ var Comment = {
                   }
               });
               // Remove the resource from the list if on subscriptions page.
-              $('.subscription-removable[data-id="' + response.data['o:resource']['o:id'] + '"]').remove();
+              $('.subscription-removable[data-id="' + resourceId + '"]').remove();
           }
     },
 

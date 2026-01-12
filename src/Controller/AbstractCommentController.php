@@ -5,7 +5,6 @@ namespace Comment\Controller;
 use Comment\Api\Representation\CommentRepresentation;
 use Comment\Entity\Comment;
 use Comment\Form\CommentForm;
-use Common\Mvc\Controller\Plugin\JSend;
 use Common\Stdlib\PsrMessage;
 use Laminas\Http\PhpEnvironment\RemoteAddress;
 use Laminas\Http\Response;
@@ -26,51 +25,55 @@ abstract class AbstractCommentController extends AbstractActionController
     {
         $request = $this->getRequest();
         if (!$request->isPost()) {
-            $this->logger()->warn('The url to add comment was accessed without post data.');
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            $this->logger()->warn(
+                'The url to add comment was accessed without post data.' // @translate
+            );
+            return $this->jSend()->fail(null, new PsrMessage(
                 'Unauthorized access.' // @translate
-            ))->setTranslator($this->translator()), Response::STATUS_CODE_403);
+            ), Response::STATUS_CODE_403);
         }
 
         $data = $this->params()->fromPost();
 
         if (!empty($data['o:check'])) {
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            return $this->jSend()->fail(null, new PsrMessage(
                 'Unauthorized access.' // @translate
-            ))->setTranslator($this->translator()), Response::STATUS_CODE_403);
+            ), Response::STATUS_CODE_403);
         }
 
         $a = (int) ($data['address_a'] ?? 0);
         $b = (int) ($data['address_b'] ?? 0);
         $c = (int) ($data['address'] ?? 0);
         if ($a + $b !== $c) {
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            return $this->jSend()->fail(null, new PsrMessage(
                 'Are you really a robot?' // @translate
-            ))->setTranslator($this->translator()));
+            ));
         }
 
         $data['o:ip'] = $this->getClientIp();
         if ($data['o:ip'] == '::') {
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            return $this->jSend()->fail(null, new PsrMessage(
                 'Unauthorized access.' // @translate
-            ))->setTranslator($this->translator()), Response::STATUS_CODE_403);
+            ), Response::STATUS_CODE_403);
         }
 
         $data['o:user_agent'] = $this->getUserAgent();
         if (empty($data['o:user_agent'])) {
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            return $this->jSend()->fail(null, new PsrMessage(
                 'Unauthorized access : no user agent.' // @translate
-            ))->setTranslator($this->translator()), Response::STATUS_CODE_403);
+            ), Response::STATUS_CODE_403);
         }
 
         unset($data['o:id']);
 
         $resourceId = (int) ($data['resource_id'] ?? 0) ?: null;
         if (empty($resourceId)) {
-            $this->logger()->warn('The url to add comment was accessed without managed resource.'); // @translate
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            $this->logger()->warn(
+                'The url to add comment was accessed without managed resource.' // @translate
+            );
+            return $this->jSend()->fail(null, new PsrMessage(
                 'Unauthorized access.' // @translate
-            ))->setTranslator($this->translator()), Response::STATUS_CODE_403);
+            ), Response::STATUS_CODE_403);
         }
 
         // Check a manipulation of the post for the resource.
@@ -80,15 +83,19 @@ abstract class AbstractCommentController extends AbstractActionController
                 ->read('resources', $resourceId)
                 ->getContent();
         } catch (NotFoundException $e) {
-            $this->logger()->warn('The url to add comment was accessed without resource id.'); // @translate
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            $this->logger()->warn(
+                'The url to add comment was accessed without resource id.' // @translate
+            );
+            return $this->jSend()->fail(null, new PsrMessage(
                 'Unauthorized access.' // @translate
-            ))->setTranslator($this->translator()), Response::STATUS_CODE_403);
+            ), Response::STATUS_CODE_403);
         } catch (\Exception $e) {
-            $this->logger()->warn('The url to add comment was accessed without resource.'); // @translate
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            $this->logger()->warn(
+                'The url to add comment was accessed without resource.' // @translate
+            );
+            return $this->jSend()->fail(null, new PsrMessage(
                 'Unauthorized access.' // @translate
-            ))->setTranslator($this->translator()), Response::STATUS_CODE_403);
+            ), Response::STATUS_CODE_403);
         }
         // A resource is required.
         $data['o:resource'] = $resource->getReference()->jsonSerialize();
@@ -102,13 +109,13 @@ abstract class AbstractCommentController extends AbstractActionController
                     ->read('comments', $parentId)
                     ->getContent();
             } catch (NotFoundException $e) {
-                return $this->jSend(JSend::Error, null, (new PsrMessage(
+                return $this->jSend()->error(null, new PsrMessage(
                     'The parent comment does not exist.' // @translate
-                ))->setTranslator($this->translator()));
+                ));
             } catch (\Exception $e) {
-                return $this->jSend(JSend::Error, null, (new PsrMessage(
+                return $this->jSend()->error(null, new PsrMessage(
                     'The parent comment doesn’t exist.' // @translate
-                ))->setTranslator($this->translator()));
+                ));
             }
         }
         $data['o:parent'] = $parent ? $parent->getReference()->jsonSerialize() : null;
@@ -128,16 +135,16 @@ abstract class AbstractCommentController extends AbstractActionController
                 || !$this->settings()->get('comment_user_require_moderation');
         } else {
             if (!$this->userIsAllowed(Comment::class, 'create')) {
-                return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+                return $this->jSend()->fail(null, new PsrMessage(
                     'Unauthorized access.' // @translate
-                ))->setTranslator($this->translator()), Response::STATUS_CODE_403);
+                ), Response::STATUS_CODE_403);
             }
             $legalText = $this->fallbackSettings()->get('comment_legal_text', ['site', 'global']);
             if ($legalText) {
                 if (empty($data['legal_agreement'])) {
-                    return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+                    return $this->jSend()->fail(null, new PsrMessage(
                         'You should accept the legal agreement.' // @translate
-                    ))->setTranslator($this->translator()));
+                    ));
                 }
             }
             $data['o:approved'] = !$this->settings()->get('comment_public_require_moderation');
@@ -154,9 +161,9 @@ abstract class AbstractCommentController extends AbstractActionController
         $data['o:site'] = $site ? $site->getReference()->jsonSerialize() : null;
 
         if (empty($data['o:body'])) {
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            return $this->jSend()->fail(null, new PsrMessage(
                 'The comment cannot be empty.' // @translate
-            ))->setTranslator($this->translator()));
+            ));
         }
 
         $path = $data['path'];
@@ -174,14 +181,14 @@ abstract class AbstractCommentController extends AbstractActionController
         $form->init();
         $form->setData($data);
         if (!$form->isValid()) {
-            $message = (new PsrMessage(
+            $message = new PsrMessage(
                 'There is issue in your comment.' // @translate
-            ))->setTranslator($this->translator());
+            );
             $messages = $form->getMessages();
             if ($messages) {
                 $message .= "\n" . implode("\n", $messages);
             }
-            return $this->jSend(JSend::FAIL, null, $message);
+            return $this->jSend()->fail(null, $message);
         }
 
         $data['o:flagged'] = false;
@@ -197,14 +204,14 @@ abstract class AbstractCommentController extends AbstractActionController
             $response = null;
         }
         if (!$response) {
-            $message = (new PsrMessage(
+            $message = $this->translate(
                 'There is issue in your comment.' // @translate
-            ))->setTranslator($this->translator());
+            );
             $messages = $form->getMessages();
             if ($messages) {
                 $message .= "\n" . implode("\n", $messages);
             }
-            return $this->jSend(JSend::FAIL, null, $message);
+            return $this->jSend()->fail(null, $message);
         }
 
         /** @var \Comment\Api\Representation\CommentRepresentation $comment */
@@ -227,16 +234,16 @@ abstract class AbstractCommentController extends AbstractActionController
         $toModerate = !$data['o:approved'] || $data['o:spam'];
         $toModerate = $toModerate || ($parent && !$parent->isApproved());
         if ($toModerate) {
-            return $this->jSend(JSend::SUCCESS, [
-                'o:resource' => ['o:id' => $resourceId],
+            return $this->jSend()->success([
+                'comment' => $comment->jsonSerialize(),
                 'moderation' => true,
                 'status' => 'commented',
             ], $this->translate(
                 'Comment was added to the resource. It will be displayed definitely when approved.' // @translate
             ));
         } else {
-            return $this->jSend(JSend::SUCCESS, [
-                'o:resource' => ['o:id' => $resourceId],
+            return $this->jSend()->success([
+                'comment' => $comment->jsonSerialize(),
                 'moderation' => false,
                 'status' => 'commented',
             ]);
@@ -248,47 +255,49 @@ abstract class AbstractCommentController extends AbstractActionController
         /** @var \Omeka\Entity\User $user */
         $user = $this->identity();
         if (!$user) {
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            return $this->jSend()->fail(null, new PsrMessage(
                 'Unauthorized access.' // @translate
-            ))->setTranslator($this->translator()), Response::STATUS_CODE_403);
+            ), Response::STATUS_CODE_403);
         }
 
         try {
             $response = $this->api()->read('comments', $this->params('id'));
         } catch (\Exception $e) {
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            return $this->jSend()->fail(null, new PsrMessage(
                 'Unauthorized access or not found.' // @translate
-            ))->setTranslator($this->translator()), Response::STATUS_CODE_403);
+            ), Response::STATUS_CODE_403);
         }
 
         /** @var \Comment\Api\Representation\CommentRepresentation $comment */
         $comment = $response->getContent();
 
         if (!$comment->userIsAllowed('edit')) {
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            return $this->jSend()->fail(null, new PsrMessage(
                 'The user has no right to edit this resource.' // @translate
-            ))->setTranslator($this->translator()), Response::STATUS_CODE_403);
+            ), Response::STATUS_CODE_403);
         }
 
         $request = $this->getRequest();
         if (!$request->isPost()) {
-            $this->logger()->warn('The url to edit comment was accessed without post data.');
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            $this->logger()->warn(
+                'The url to edit comment was accessed without post data.' // @translate
+            );
+            return $this->jSend()->fail(null, new PsrMessage(
                 'Unauthorized access.' // @translate
-            ))->setTranslator($this->translator()), Response::STATUS_CODE_403);
+            ), Response::STATUS_CODE_403);
         }
 
         $newBody = trim($this->params()->fromPost('o:body', ''));
         if (!strlen($newBody)) {
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            return $this->jSend()->fail(null, new PsrMessage(
                 'No text submitted.' // @translate
-            ))->setTranslator($this->translator()));
+            ));
         }
 
         if ($newBody === $comment->body()) {
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            return $this->jSend()->fail(null, new PsrMessage(
                 'Text submitted is the same than the existing one.' // @translate
-            ))->setTranslator($this->translator()));
+            ));
         }
 
         $resourceId = $comment->id();
@@ -317,10 +326,10 @@ abstract class AbstractCommentController extends AbstractActionController
         }
         // Normally not possible because checked above.
         if (!$response) {
-            $message = (new PsrMessage(
+            $message = new PsrMessage(
                 'An error occurred.' // @translate
-            ))->setTranslator($this->translator());
-            return $this->jSend(JSend::ERROR, null, $message);
+            );
+            return $this->jSend()->error(null, $message);
         }
 
         $comment = $response->getContent();
@@ -337,16 +346,16 @@ abstract class AbstractCommentController extends AbstractActionController
         // TODO Check parent for moderation?
         $toModerate = !$comment->isApproved() || $comment->isSpam();
         if ($toModerate) {
-            return $this->jSend(JSend::SUCCESS, [
-                'o:resource' => ['o:id' => $resourceId],
+            return $this->jSend()->success([
+                'comment' => $comment->jsonSerialize(),
                 'moderation' => true,
                 'status' => 'commented',
             ], $this->translate(
                 'Comment was updated. It will be displayed definitely when approved.' // @translate
             ));
         } else {
-            return $this->jSend(JSend::SUCCESS, [
-                'o:resource' => ['o:id' => $resourceId],
+            return $this->jSend()->success([
+                'comment' => $comment->jsonSerialize(),
                 'moderation' => false,
                 'status' => 'commented',
             ]);
@@ -372,12 +381,14 @@ abstract class AbstractCommentController extends AbstractActionController
     protected function flagUnflag($flagUnflag)
     {
         $data = $this->params()->fromPost();
-        $commentId = $data['id'] ?? null;
+        $commentId = (int) ($data['id'] ?? 0);
         if (!$commentId) {
-            $this->logger()->warn('The comment id cannot be identified.'); // @translate
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            $this->logger()->warn(
+                'The comment id cannot be identified.' // @translate
+            );
+            return $this->jSend()->fail(null, new PsrMessage(
                 'Comment not found.' // @translate
-            ))->setTranslator($this->translator()));
+            ));
         }
 
         // Just check if the comment exists.
@@ -391,24 +402,24 @@ abstract class AbstractCommentController extends AbstractActionController
                 'The comment #{comment_id} cannot be identified.', // @translate
                 ['comment_id' => $commentId]
             );
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            return $this->jSend()->fail(null, new PsrMessage(
                 'Comment not found.' // @translate
-            ))->setTranslator($this->translator()));
+            ));
         } catch (\Exception $e) {
             $this->logger()->warn(
                 'The comment #{comment_id} cannot be accessed.', // @translate
                 ['comment_id' => $commentId]
             );
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            return $this->jSend()->fail(null, new PsrMessage(
                 'Unauthorized access.' // @translate
-            ))->setTranslator($this->translator()));
+            ));
         }
 
         $api
             ->update('comments', $commentId, ['o:flagged' => $flagUnflag], [], ['isPartial' => true]);
 
-        return $this->jSend(JSend::SUCCESS, [
-            'o:id' => $commentId,
+        return $this->jSend()->success([
+            'comment' => ['o:id' => $commentId],
             'o:flagged' => $flagUnflag,
             'status' => $flagUnflag ? 'flagged' : 'unflagged',
         ]);
@@ -418,9 +429,9 @@ abstract class AbstractCommentController extends AbstractActionController
     {
         $user = $this->identity();
         if (!$user) {
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            return $this->jSend()->fail(null, new PsrMessage(
                 'Unauthorized access.' // @translate
-            ))->setTranslator($this->translator()), Response::STATUS_CODE_403);
+            ), Response::STATUS_CODE_403);
         }
 
         $data = $this->params()->fromPost()
@@ -428,9 +439,9 @@ abstract class AbstractCommentController extends AbstractActionController
 
         $resourceId = (int) $data['id'];
         if (empty($resourceId)) {
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            return $this->jSend()->fail(null, new PsrMessage(
                 'Unauthorized access.' // @translate
-            ))->setTranslator($this->translator()), Response::STATUS_CODE_403);
+            ), Response::STATUS_CODE_403);
         }
 
         /** @var \Omeka\Mvc\Controller\Plugin\Api $api */
@@ -441,28 +452,28 @@ abstract class AbstractCommentController extends AbstractActionController
             /** @var \Omeka\Api\Representation\AbstractResourceRepresentation $resource */
             $resource = $api->read('resources', ['id' => $resourceId])->getContent();
         } catch (NotFoundException $e) {
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            return $this->jSend()->fail(null, new PsrMessage(
                 'Resource not found.' // @translate
-            ))->setTranslator($this->translator()), Response::STATUS_CODE_403);
+            ), Response::STATUS_CODE_403);
         } catch (\Exception $e) {
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            return $this->jSend()->fail(null, new PsrMessage(
                 'Unauthorized access.' // @translate
-            ))->setTranslator($this->translator()), Response::STATUS_CODE_403);
+            ), Response::STATUS_CODE_403);
         }
 
         $action = $data['action'] ?: 'toggle';
         if (!in_array($action, ['add', 'delete', 'toggle'])) {
-            return $this->jSend(JSend::FAIL, null, (new PsrMessage(
+            return $this->jSend()->fail(null, new PsrMessage(
                 'Action {action} not allowed.', // @translate
                 ['action' => $action]
-            ))->setTranslator($this->translator()));
+            ));
         }
 
         try {
             $subscription = $api->read('comment_subscriptions', [
                 'owner' => $user->getId(),
                 'resource' => $resourceId,
-            ], [], ['responseContent' => 'resource'])->getContent();
+            ])->getContent();
         } catch (\Exception $e) {
             $subscription = null;
         }
@@ -476,17 +487,19 @@ abstract class AbstractCommentController extends AbstractActionController
                 $subscription = $api->create('comment_subscriptions', [
                     'o:owner' => ['o:id' => $user->getId()],
                     'o:resource' => ['o:id' => $resourceId]
-                ], [], ['responseContent' => 'resource'])->getContent();
+                ])->getContent();
             }
         } else {
             if ($subscription) {
-                $api->delete('comment_subscriptions', ['id' => $subscription->getId()]);
+                $api->delete('comment_subscriptions', ['id' => $subscription->id()]);
                 $subscription = null;
             }
         }
 
-        return $this->jSend(JSend::SUCCESS, [
-            'o:resource' => $resource->getReference()->jsonSerialize(),
+        return $this->jSend()->success([
+            'comment_subscription' => $subscription
+                ? $subscription->jsonSerialize()
+               : ['o:resource' => $resource->getReference()->jsonSerialize()],
             'status' => $subscription ? 'subscribed' : 'unsubscribed',
         ]);
     }
@@ -509,7 +522,9 @@ abstract class AbstractCommentController extends AbstractActionController
         $wordPressAPIKey = $this->settings()->get('commenting_wpapi_key');
         if ($wordPressAPIKey) {
             if (!class_exists('ZendService\Akismet\Akismet')) {
-                $this->logger()->err('Akismet not available: install it.'); // @translate
+                $this->logger()->err(
+                    'Akismet is not available: install it.' // @translate
+                );
                 return false;
             }
             $viewHelpers = $this->viewHelpers();
@@ -565,10 +580,10 @@ abstract class AbstractCommentController extends AbstractActionController
     protected function notifyEmail(AbstractResourceEntityRepresentation $resource, CommentRepresentation $comment): void
     {
         $site = @$_SERVER['SERVER_NAME'] ?: sprintf('Server (%s)', @$_SERVER['SERVER_ADDR']); // @translate
-        $subject = new PsrMessage(
+        $subject = (new PsrMessage(
             '[{site}] New public comment', // @translate
             ['site' => $site]
-        );
+            ))->setTranslator($this->translator());
 
         $body = (new PsrMessage(
             'A comment was added to resource #{resource_id} ({resource_url}) by {name} <{email}}>.', // @translate
@@ -581,20 +596,10 @@ abstract class AbstractCommentController extends AbstractActionController
         ))->setTranslator($this->translator());
         $body .= "\r\n\r\n";
 
-        $mailer = $this->mailer();
-        $message = $mailer->createMessage();
-        $emails = $this->settings()->get('comment_public_notify_post');
-        foreach ($emails as $email) {
-            $message->addTo($email);
-        }
-        $message
-            ->setSubject($subject)
-            ->setBody($body);
-        try {
-            $mailer->send($message);
-        } catch (\Laminas\Mail\Transport\Exception\RuntimeException $e) {
-            $this->logger()->err('Unable to send an email after commenting.'); // @translate
-        }
+        $to = $this->settings()->get('comment_public_notify_post');
+
+        /** @var \Common\Mvc\Controller\Plugin\SendEmail */
+        $this->sendEmail($body, $subject, $to);
     }
 
     /**
